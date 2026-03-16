@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* RESET */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* OPTIONAL */
+body {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #F5F6FA;
+}
+
+.react-calendar {
+  border: none;
+  width: 100%;
+}
+
+.react-calendar__tile--active {
+  background: #A44A4A;
+  color: white;
+  border-radius: 8px;
+}
+
+.react-calendar__tile:hover {
+  background: #f3e8e8;
+  border-radius: 8px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-in-out;
+}
