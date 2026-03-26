@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { FiChevronDown } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 export default function HasilMonitoring() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const navigate = useNavigate(); 
 
   const toggleFilter = (name: string) => {
     setActiveFilter(activeFilter === name ? null : name);
@@ -15,6 +17,49 @@ export default function HasilMonitoring() {
     return () => window.removeEventListener("click", handleClick);
   }, []);
 
+  // 🔥 DATA (biar bisa dikirim ke detail)
+  const data = [
+    {
+      id: 1,
+      tanggal: "05/12/2025",
+      jam: "08.00 - 10.00",
+      matkul: "Alpro",
+      kode: "TKI2H4",
+      hari: "Kamis",
+      ruangan: "TULT 14.15",
+      kodeDosen: "AGV",
+      namaDosen: "Agus Virgono",
+      kehadiran: "Tepat Waktu",
+      aktivitas: "Ceramah",
+    },
+    {
+      id: 2,
+      tanggal: "05/12/2025",
+      jam: "10.00 - 12.00",
+      matkul: "Alpro",
+      kode: "TKI2H4",
+      hari: "Kamis",
+      ruangan: "TULT 14.15",
+      kodeDosen: "BRH",
+      namaDosen: "Burhanudin",
+      kehadiran: "Tepat Waktu",
+      aktivitas: "Ceramah",
+    },
+    {
+      id: 3,
+      tanggal: "05/12/2025",
+      jam: "12.00 - 15.00",
+      matkul: "PTA",
+      kode: "TKI2H4",
+      hari: "Kamis",
+      ruangan: "TULT 14.15",
+      kodeDosen: "RLC",
+      namaDosen: "Roswan",
+      kehadiran: "Tepat Waktu",
+      aktivitas: "Ceramah",
+    },
+  ];
+
   return (
     <div className="p-6">
       {/* TITLE */}
@@ -25,73 +70,24 @@ export default function HasilMonitoring() {
       {/* 🔥 FILTER */}
       <div className="flex items-center gap-4 mb-6 relative">
 
-        {/* KODE DOSEN */}
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFilter("dosen");
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm text-sm text-gray-700 hover:shadow transition"
-          >
-            Kode Dosen <FiChevronDown />
-          </button>
+        {["dosen", "matkul", "waktu", "kelas"].map((item) => (
+          <div className="relative" key={item}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFilter(item);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm text-sm text-gray-700 hover:shadow transition"
+            >
+              {item.charAt(0).toUpperCase() + item.slice(1)} <FiChevronDown />
+            </button>
 
-          {activeFilter === "dosen" && (
-            <DropdownCheckbox title="Filter Kode Dosen" />
-          )}
-        </div>
+            {activeFilter === item && (
+              <DropdownCheckbox title={`Filter ${item}`} />
+            )}
+          </div>
+        ))}
 
-        {/* MATKUL */}
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFilter("matkul");
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm text-sm text-gray-700 hover:shadow transition"
-          >
-            Matkul <FiChevronDown />
-          </button>
-
-          {activeFilter === "matkul" && (
-            <DropdownCheckbox title="Filter Matkul" />
-          )}
-        </div>
-
-        {/* WAKTU */}
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFilter("waktu");
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm text-sm text-gray-700 hover:shadow transition"
-          >
-            Waktu <FiChevronDown />
-          </button>
-
-          {activeFilter === "waktu" && (
-            <DropdownCheckbox title="Filter Waktu" />
-          )}
-        </div>
-
-        {/* KELAS */}
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFilter("kelas");
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm text-sm text-gray-700 hover:shadow transition"
-          >
-            Kelas <FiChevronDown />
-          </button>
-
-          {activeFilter === "kelas" && (
-            <DropdownCheckbox title="Filter Kelas" />
-          )}
-        </div>
       </div>
 
       {/* 🔥 TABLE */}
@@ -110,35 +106,28 @@ export default function HasilMonitoring() {
           </thead>
 
           <tbody>
-            <tr className="border-t">
-              <td className="p-3">05/12/2025</td>
-              <td className="p-3">08.00 - 10.00</td>
-              <td className="p-3">Alpro</td>
-              <td className="p-3">AGV</td>
-              <td className="p-3">Agus Virgono</td>
-              <td className="p-3 text-green-600">✔ Tepat Waktu</td>
-              <td className="p-3">Ceramah</td>
-            </tr>
-
-            <tr className="border-t bg-gray-50">
-              <td className="p-3">05/12/2025</td>
-              <td className="p-3">10.00 - 12.00</td>
-              <td className="p-3">Alpro</td>
-              <td className="p-3">BRH</td>
-              <td className="p-3">Burhanudin</td>
-              <td className="p-3 text-green-600">✔ Tepat Waktu</td>
-              <td className="p-3">Ceramah</td>
-            </tr>
-
-            <tr className="border-t">
-              <td className="p-3">05/12/2025</td>
-              <td className="p-3">12.00 - 15.00</td>
-              <td className="p-3">PTA</td>
-              <td className="p-3">RLC</td>
-              <td className="p-3">Roswan</td>
-              <td className="p-3 text-green-600">✔ Tepat Waktu</td>
-              <td className="p-3">Ceramah</td>
-            </tr>
+            {data.map((item, index) => (
+              <tr
+                key={item.id}
+                onClick={() =>
+                  navigate(`/monitoring/${item.id}`, { state: item })
+                }
+                className={`border-t cursor-pointer transition-all duration-200
+                  hover:bg-gray-100 hover:shadow-sm
+                  ${index % 2 === 1 ? "bg-gray-50" : ""}
+                `}
+              >
+                <td className="p-3">{item.tanggal}</td>
+                <td className="p-3">{item.jam}</td>
+                <td className="p-3">{item.matkul}</td>
+                <td className="p-3">{item.kodeDosen}</td>
+                <td className="p-3">{item.namaDosen}</td>
+                <td className="p-3 text-green-600">
+                  ✔ {item.kehadiran}
+                </td>
+                <td className="p-3">{item.aktivitas}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

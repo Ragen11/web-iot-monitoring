@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import HasilMonitoring from "./pages/HasilMonitoring";
 import LaporanEvaluasi from "./pages/LaporanEvaluasi";
 import InputJadwal from "./pages/InputJadwal";
+import DetailMonitoring from "./pages/DetailMonitoring";
 
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -31,6 +32,7 @@ function App() {
             <Route path="monitoring" element={<HasilMonitoring />} />
             <Route path="LaporanEvaluasi" element={<LaporanEvaluasi />} />
             <Route path="input-jadwal" element={<InputJadwal />} />
+            <Route path="monitoring/:id" element={<DetailMonitoring />} />
           </Route>
 
         </Routes>

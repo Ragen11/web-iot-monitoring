@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
 interface AuthContextType {
   user: string | null;
   role: "admin" | "user" | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -22,34 +23,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (storedRole) setRole(storedRole);
   }, []);
 
-  const login = (username: string, password: string) => {
+  // 🔥 LOGIN VIA SUPABASE
+  const login = async (username: string, password: string) => {
 
-    // ADMIN
-    if (username === "admin" && password === "123") {
-      localStorage.setItem("user", username);
-      localStorage.setItem("role", "admin");
+    // 1. cari email dari username
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("email, role")
+      .eq("username", username)
+      .single();
 
-      setUser(username);
-      setRole("admin");
-
-      return true;
+    if (error || !profile) {
+      return false;
     }
 
-    // USER
-    if (username === "user" && password === "123") {
-      localStorage.setItem("user", username);
-      localStorage.setItem("role", "user");
+    // 2. login ke supabase
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email: profile.email,
+      password,
+    });
 
-      setUser(username);
-      setRole("user");
-
-      return true;
+    if (loginError) {
+      return false;
     }
 
-    return false;
+    // 3. simpan ke state
+    localStorage.setItem("user", username);
+    localStorage.setItem("role", profile.role);
+
+    setUser(username);
+    setRole(profile.role);
+
+    return true;
   };
 
-  const logout = () => {
+  // 🔥 LOGOUT SUPABASE
+  const logout = async () => {
+    await supabase.auth.signOut();
+
     localStorage.removeItem("user");
     localStorage.removeItem("role");
 

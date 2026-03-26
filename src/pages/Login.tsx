@@ -9,12 +9,19 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // 🔥 tambahan
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    const success = login(username, password);
+  const handleLogin = async () => {
+    setError("");
+    setLoading(true);
+
+    const success = await login(username, password);
+
+    setLoading(false);
+
     if (success) {
       navigate("/");
     } else {
@@ -25,15 +32,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F3F4F8] px-4">
       
-      {/* FRAME CARD */}
       <div className="w-full max-w-5xl h-[600px] bg-white rounded-3xl shadow-2xl overflow-hidden grid grid-cols-2">
 
-        {/* ========================= */}
-        {/* LEFT SIDE - FORM */}
-        {/* ========================= */}
+        {/* LEFT */}
         <div className="flex flex-col justify-center px-16">
 
-          {/* LOGO */}
           <div className="mb-8 flex justify-center">
             <span className="bg-[#E7C5C5] text-[#A44A4A] px-6 py-2 rounded-xl font-semibold text-sm">
               MonitoringClass
@@ -75,7 +78,10 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <button onClick={() => setShowPassword(!showPassword)}>
+              <button
+                type="button" // 🔥 penting biar ga submit form
+                onClick={() => setShowPassword(!showPassword)}
+              >
                 {showPassword ? <FiEyeOff /> : <FiEye />}
               </button>
             </div>
@@ -83,22 +89,16 @@ export default function Login() {
 
           <button
             onClick={handleLogin}
-            className="mt-4 bg-[#A44A4A] text-white py-3 rounded-full shadow-lg hover:opacity-90 transition"
+            disabled={loading} // 🔥 disable saat loading
+            className="mt-4 bg-[#A44A4A] text-white py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50"
           >
-            Login
+            {loading ? "Loading..." : "Login"}
           </button>
         </div>
 
-        {/* ========================= */}
-        {/* RIGHT SIDE - ILLUSTRATION */}
-        {/* ========================= */}
+        {/* RIGHT */}
         <div className="bg-[#A44A4A] flex flex-col justify-center items-center text-white rounded-l-[120px]">
-
-          <img
-            src={illustration}
-            alt="login"
-            className="w-72 mb-6"
-          />
+          <img src={illustration} alt="login" className="w-72 mb-6" />
 
           <h2 className="text-xl font-semibold">
             Welcome Back!

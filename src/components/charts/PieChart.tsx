@@ -3,11 +3,10 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Tooltip, 
 } from "recharts";
 
 const data = [
-  { name: "Ceramah", value: 52.1, color: "#A44A4A" },
+  { name: "Ceramah", value: 52.1, color: "#9F4A4A" },
   { name: "Tanya Jawab", value: 22.8, color: "#000000" },
   { name: "Diskusi", value: 13.9, color: "#E6C7C7" },
   { name: "Tidak ada Pembelajaran", value: 11.2, color: "#6B7280" },
@@ -15,46 +14,46 @@ const data = [
 
 export default function ChartPie() {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm">
+    <div className="bg-[#F9FAFB] p-6 rounded-3xl shadow-sm">
+
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-gray-800 font-semibold text-lg">
+      <div className="flex justify-between items-start mb-4">
+        <h2 className="text-lg font-semibold text-gray-800">
           Aktivitas Pembelajaran
         </h2>
 
-        <div className="flex gap-3 text-sm text-gray-500">
-          <select className="bg-transparent outline-none">
-            <option>RER</option>
-          </select>
-          <select className="bg-transparent outline-none">
-            <option>TK-46-06</option>
-          </select>
+        <div className="flex gap-2 bg-gray-100 rounded-lg px-2 py-1 text-xs">
+          <span className="bg-white px-2 py-1 rounded-md shadow text-black">
+            1H
+          </span>
+          <span className="px-2 py-1 text-gray-500">1M</span>
+          <span className="px-2 py-1 text-gray-500">1B</span>
         </div>
       </div>
 
+      {/* FILTER */}
+      <div className="flex gap-3 text-sm text-gray-500 mb-4">
+        <select className="bg-transparent outline-none">
+          <option>RER</option>
+        </select>
+        <select className="bg-transparent outline-none">
+          <option>TK-46-06</option>
+        </select>
+      </div>
+
       {/* CONTENT */}
-      <div className="flex items-center">
+      <div className="flex items-center justify-between">
+
         {/* CHART */}
-        <div className="w-1/2 h-56">
+        <div className="w-44 h-44">
           <ResponsiveContainer>
             <PieChart>
-
-              {/* 🔥 TOOLTIP (hover muncul info) */}
-              <Tooltip
-                formatter={(value?: number) => `${value ?? 0}%`}
-              />
-
               <Pie
                 data={data}
-                innerRadius={60}
-                outerRadius={85}
-                paddingAngle={2}
+                innerRadius={50}
+                outerRadius={80}
                 dataKey="value"
                 stroke="none"
-
-                /* 🔥 ANIMASI */
-                isAnimationActive={true}
-                animationDuration={500}
               >
                 {data.map((entry, index) => (
                   <Cell key={index} fill={entry.color} />
@@ -65,28 +64,29 @@ export default function ChartPie() {
         </div>
 
         {/* LEGEND */}
-        <div className="flex-1 space-y-3">
-          {data.map((item, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-center"
-            >
-              <div className="flex items-center gap-3">
+        <div className="flex-1 ml-6 space-y-3 text-sm">
+          {data.map((item, i) => (
+            <div key={i} className="flex justify-between items-center">
+              
+              <div className="flex items-center gap-2">
                 <div
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: item.color }}
-                ></div>
-
-                <span className="text-gray-600 text-sm">
-                  {item.name}
-                </span>
+                />
+                <span className="text-gray-700">{item.name}</span>
               </div>
 
-              <span className="text-gray-700 text-sm font-medium">
+              <span className="text-gray-800">
                 {item.value}%
               </span>
             </div>
           ))}
+
+          <div className="text-right mt-4">
+            <button className="text-[#9F4A4A] text-sm font-medium cursor-pointer hover:underline">
+              Lihat Detail
+            </button>
+          </div>
         </div>
       </div>
     </div>
