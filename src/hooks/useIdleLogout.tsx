@@ -15,10 +15,10 @@ export default function useIdleLogout() {
   const countdownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 4.5 menit muncul warning
-  const WARNING_TIME = 1000 * 60 * 4.5;
+  const WARNING_TIME = 1000 * 60 * 10;
 
   // 5 menit logout
-  const LOGOUT_TIME = 1000 * 60 * 5;
+  const LOGOUT_TIME = 1000 * 60 * 12;
 
   const clearAllTimers = () => {
 
