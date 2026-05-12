@@ -13,11 +13,14 @@ export default function Sidebar() {
   const { role } = useAuth();
 
   return (
-    <div className="w-64 h-screen fixed left-0 top-0 bg-[#A44A4A] text-white flex flex-col p-6 rounded-r-3xl">
+    <div className="w-64 h-[calc(100vh-2rem)] fixed left-4 top-4 bg-[#A44A4A] text-white flex flex-col p-6 rounded-3xl shadow-lg">
 
-      <h1 className="text-xl font-bold mb-10">MonitoringClass</h1>
+      {/* Title */}
+      <h1 className="text-lg font-semibold mb-10 tracking-wide text-center">
+        MonitoringClass
+      </h1>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
 
         {menu.map((item) => (
           <NavLink
@@ -25,41 +28,49 @@ export default function Sidebar() {
             to={item.path}
             end={item.path === "/"}
             className={({ isActive }) =>
-              `flex items-center gap-3 p-3 rounded-xl transition-all duration-200
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
               ${
                 isActive
-                  ? "bg-white/20 text-white"
-                  : "opacity-80 hover:bg-white/20 hover:text-white hover:shadow-sm hover:-translate-y-0.5"
+                  ? "bg-white text-[#A44A4A] shadow-sm"
+                  : "text-white/80 hover:bg-white/20 hover:text-white"
               }`
             }
           >
             {item.icon}
-            {item.name}
+            <span className="text-sm font-medium">
+              {item.name}
+            </span>
           </NavLink>
         ))}
 
-        {/* ADMIN ONLY */}
         {role === "admin" && (
           <NavLink
             to="/input-jadwal"
             className={({ isActive }) =>
-              `flex items-center gap-3 p-3 rounded-xl transition-all duration-200
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
               ${
                 isActive
-                  ? "bg-white/20 text-white"
-                  : "opacity-80 hover:bg-white/20 hover:text-white hover:shadow-sm hover:-translate-y-0.5"
+                  ? "bg-white text-[#A44A4A] shadow-sm"
+                  : "text-white/80 hover:bg-white/20 hover:text-white"
               }`
             }
           >
             <FiCalendar />
-            Input Jadwal
+            <span className="text-sm font-medium">
+              Input Jadwal
+            </span>
           </NavLink>
         )}
 
       </div>
 
-      <div className="mt-auto flex items-center gap-3 opacity-80">
-        <FiSettings /> Setting
+      <div className="mt-auto flex items-center gap-3 text-white/70 hover:text-white cursor-pointer">
+
+        <FiSettings />
+        <span className="text-sm">
+          Setting
+        </span>
+
       </div>
     </div>
   );

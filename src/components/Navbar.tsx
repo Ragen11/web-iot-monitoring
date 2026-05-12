@@ -54,51 +54,62 @@ export default function Navbar() {
   });
 
   return (
-    <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm relative">
-      
-      <div className="text-sm text-gray-400 flex items-center gap-3 font-medium">
-        
-        <span>
-          {formattedHours}:{minutes}:{seconds}
-        </span>
+    <div className="fixed top-4 left-72 right-6 z-40">
 
-        <span className="font-semibold">
-          {ampm}
-        </span>
+      <div className="flex justify-between items-center bg-white/80 backdrop-blur-md px-6 py-4 rounded-2xl shadow-sm border border-gray-100">
 
-        <span>
-          {formattedDate}
-        </span>
-      </div>
+        <div className="text-sm text-gray-500 flex items-center gap-3 font-medium">
 
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-3 focus:outline-none"
-        >
-          <span className="text-gray-700 font-medium">
-            Hello {user}
+          <span className="font-semibold text-gray-700">
+            {formattedHours}:{minutes}:{seconds}
           </span>
 
-          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-[#A44A4A] transition">
-            <img
-              src="https://i.pravatar.cc/100"
-              alt="profile"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </button>
+          <span className="text-gray-400">
+            {ampm}
+          </span>
 
-        {open && (
-          <div className="absolute right-0 mt-3 w-40 bg-white rounded-xl shadow-lg border border-gray-100 z-50">
-            <button
-              onClick={handleLogout}
-              className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 rounded-xl transition"
-            >
-              Logout
-            </button>
-          </div>
-        )}
+          <span className="text-gray-400">
+            {formattedDate}
+          </span>
+
+        </div>
+
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setOpen(!open)}
+            className="flex items-center gap-3 focus:outline-none"
+          >
+
+            <span className="text-gray-700 font-medium">
+              Hello {user}
+            </span>
+
+            <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 hover:border-[#A44A4A] transition">
+
+              <img
+                src="https://i.pravatar.cc/100"
+                alt="profile"
+                className="w-full h-full object-cover"
+              />
+
+            </div>
+
+          </button>
+
+          {open && (
+            <div className="absolute right-0 mt-3 w-40 bg-white rounded-xl shadow-md border border-gray-100">
+
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 rounded-xl transition"
+              >
+                Logout
+              </button>
+
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
