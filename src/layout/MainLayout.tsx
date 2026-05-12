@@ -2,16 +2,16 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 
-//import useIdleLogout from "../hooks/useIdleLogout";
+import useIdleLogout from "../hooks/useIdleLogout";
 import SessionTimeoutModal from "../components/SessionTimeoutModal";
 
 export default function MainLayout() {
 
-  // const {
-  //   showModal,
-  //   countdown,
-  //   stayLoggedIn,
-  // } = useIdleLogout();
+  const {
+    showModal,
+    countdown,
+    stayLoggedIn,
+  } = useIdleLogout();
 
   return (
     <>
@@ -30,13 +30,12 @@ export default function MainLayout() {
         </div>
 
       </div>
-
-      {/* MODAL */}
-      {/* <SessionTimeoutModal
+      
+      <SessionTimeoutModal
         open={showModal}
         countdown={countdown}
         onStay={stayLoggedIn}
-      /> */}
+      />
     </>
   );
 }
