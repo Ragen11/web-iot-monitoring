@@ -46,3 +46,63 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-in-out;
 }
+
+/* =============================================
+   AUTO-HIDE SCROLLBAR — container (misal modal)
+   Muncul saat hover atau scroll (.is-scrolling)
+   ============================================= */
+.auto-hide-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.auto-hide-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.auto-hide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.auto-hide-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 99px;
+}
+/* Muncul saat hover ke area container / scrollbar */
+.auto-hide-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+/* Muncul saat sedang scroll (via JS class) */
+.auto-hide-scrollbar.is-scrolling {
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+.auto-hide-scrollbar.is-scrolling::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+/* =============================================
+   AUTO-HIDE SCROLLBAR — window / halaman penuh
+   Dipakai di DetailMonitoring via JS class
+   ============================================= */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+html::-webkit-scrollbar {
+  width: 6px;
+}
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 99px;
+}
+html.page-scrolling::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+/* Sembunyikan native scrollbar (untuk custom scrollbar) */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

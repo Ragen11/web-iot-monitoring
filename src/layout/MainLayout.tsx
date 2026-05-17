@@ -19,11 +19,11 @@ export default function MainLayout() {
 
         <Sidebar />
 
-        <div className="ml-72 pt-16 px-6">
+        <div className="ml-72 pt-16">
 
           <Navbar />
 
-          <div className="mt-6">
+          <div className="mt-4">
             <Outlet />
           </div>
 

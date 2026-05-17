@@ -1,11 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiX, FiUploadCloud, FiFile } from "react-icons/fi";
+import { BsFiletypeCsv, BsFiletypeXlsx, BsFiletypePdf, BsFiletypeTxt } from "react-icons/bs";
 
 export default function InputJadwal() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [fileReadProgress, setFileReadProgress] = useState(0);
+  const [fileReady, setFileReady] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [jadwal, setJadwal] = useState<any[]>([]);
 
@@ -33,6 +38,9 @@ export default function InputJadwal() {
 
   useEffect(() => {
     fetchJadwal();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   // CLOSE DROPDOWN SAAT KLIK LUAR
@@ -68,6 +76,28 @@ export default function InputJadwal() {
 
     const selectedFiles = Array.from(e.target.files);
     setFiles([selectedFiles[0]]);
+    setFileReadProgress(0);
+    setFileReady(false);
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    let prog = 0;
+    intervalRef.current = setInterval(() => {
+      prog += 5;
+      setFileReadProgress(prog);
+      if (prog >= 100) {
+        clearInterval(intervalRef.current!);
+        setFileReady(true);
+      }
+    }, 60);
+  };
+
+  const handleRemoveFile = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setFiles([]);
+    setFileReadProgress(0);
+    setFileReady(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // ===============================
@@ -114,6 +144,8 @@ export default function InputJadwal() {
 
       setFiles([]);
       setProgress(0);
+      setFileReadProgress(0);
+      setFileReady(false);
 
       fetchJadwal();
     } catch (error: any) {
@@ -128,6 +160,15 @@ export default function InputJadwal() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getFileIcon = (filename: string) => {
+    const ext = filename.split(".").pop()?.toLowerCase();
+    if (ext === "csv") return <BsFiletypeCsv size={40} className="text-green-600" />;
+    if (ext === "xlsx" || ext === "xls") return <BsFiletypeXlsx size={40} className="text-emerald-600" />;
+    if (ext === "pdf") return <BsFiletypePdf size={40} className="text-red-500" />;
+    if (ext === "txt") return <BsFiletypeTxt size={40} className="text-gray-500" />;
+    return <FiFile size={40} className="text-gray-400" />;
   };
 
   return (
@@ -147,9 +188,11 @@ export default function InputJadwal() {
           to 1 file max
         </p>
 
-        <label className="border-2 border-dashed border-blue-300 rounded-xl p-10 flex flex-col items-center cursor-pointer hover:bg-gray-50">
+        <label className="border-2 border-dashed border-blue-300 rounded-xl p-10 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 transition">
 
-          <span className="text-gray-500 mb-2">
+          <FiUploadCloud size={48} className="text-blue-400" />
+
+          <span className="text-gray-600 font-medium">
             Drag your file(s) or browse
           </span>
 
@@ -158,6 +201,7 @@ export default function InputJadwal() {
           </span>
 
           <input
+            ref={fileInputRef}
             type="file"
             accept=".csv"
             className="hidden"
@@ -166,25 +210,59 @@ export default function InputJadwal() {
         </label>
 
         {files.length > 0 && (
-          <div className="mt-4 text-sm">
-            <p className="font-medium">
-              Selected File:
-            </p>
-            <p className="text-gray-600">
-              {files[0].name}
-            </p>
+          <div className="mt-4 space-y-3">
+            {/* File info + tombol hapus */}
+            <div className="flex items-center gap-4 bg-gray-50 border rounded-lg px-4 py-3">
+              <div className="flex-shrink-0">
+                {getFileIcon(files[0].name)}
+              </div>
+              <div className="flex-1 min-w-0 text-sm">
+                <p className="font-medium text-gray-700 truncate">{files[0].name}</p>
+                <p className="text-gray-400 text-xs">
+                  {(files[0].size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+              <button
+                onClick={handleRemoveFile}
+                disabled={loading}
+                className="flex-shrink-0 text-gray-400 hover:text-red-500 transition disabled:opacity-40"
+                title="Hapus file"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            {/* Progress bar: file reading */}
+            {!fileReady && (
+              <div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-75"
+                    style={{ width: `${fileReadProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Memproses file... {fileReadProgress}%
+                </p>
+              </div>
+            )}
+
+            {fileReady && !loading && (
+              <p className="text-xs text-green-600 font-medium">
+                ✓ File siap untuk di-submit
+              </p>
+            )}
           </div>
         )}
 
+        {/* Progress bar: upload ke server */}
         {loading && (
-          <div className="mt-4">
+          <div className="mt-3">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-blue-500 h-2 rounded-full transition-all"
-                style={{
-                  width: `${progress}%`,
-                }}
-              ></div>
+                className="bg-[#A44A4A] h-2 rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
             </div>
             <p className="text-xs text-gray-500 mt-1">
               Uploading... {progress}%
@@ -198,11 +276,11 @@ export default function InputJadwal() {
 
         <button
           onClick={handleSubmit}
-          disabled={loading}
-          className={`mt-4 px-6 py-2 rounded-lg text-white ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#A44A4A]"
+          disabled={!fileReady || loading}
+          className={`mt-4 px-6 py-2 rounded-lg text-white transition ${
+            !fileReady || loading
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-[#A44A4A] hover:bg-[#8f3e3e]"
           }`}
         >
           {loading ? "Uploading..." : "Submit"}

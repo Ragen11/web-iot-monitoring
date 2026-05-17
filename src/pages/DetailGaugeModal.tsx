@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -174,19 +174,63 @@ export default function DetailGaugeModal({
   onClose,
 }: Props) {
 
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
+  const scrollRef  = useRef<HTMLDivElement>(null);
+  const timerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    window.addEventListener("keydown", handleEsc);
+  const [thumbH,       setThumbH]       = useState(0);
+  const [thumbTop,     setThumbTop]     = useState(0);
+  const [thumbVisible, setThumbVisible] = useState(false);
+
+  /* ── ESC key ── */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  /* ── Hitung posisi thumb ── */
+  const calcThumb = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ratio   = el.clientHeight / el.scrollHeight;
+    setThumbH(Math.max(el.clientHeight * ratio, 40));
+    setThumbTop(el.scrollTop * ratio);
+  };
+
+  const startHide = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setThumbVisible(false), 900);
+  };
+
+  const showBar = () => {
+    calcThumb();
+    setThumbVisible(true);
+    startHide();
+  };
+
+  /* ── Pasang listener saat modal terbuka ── */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !open) return;
+
+    calcThumb();          // hitung posisi awal
+    el.scrollTop = 0;     // reset scroll ke atas setiap buka modal
+
+    const onScroll     = () => showBar();
+    const onEnter      = () => showBar();
+    const onLeave      = () => startHide();
+
+    el.addEventListener("scroll",     onScroll, { passive: true });
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mouseleave", onLeave);
 
     return () => {
-      window.removeEventListener("keydown", handleEsc);
+      el.removeEventListener("scroll",     onScroll);
+      el.removeEventListener("mouseenter", onEnter);
+      el.removeEventListener("mouseleave", onLeave);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [onClose]);
+  }, [open]);
 
   return (
     <AnimatePresence>
@@ -210,18 +254,24 @@ export default function DetailGaugeModal({
             transition={{ duration: 0.25 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
           >
+            {/* Outer: white card, relative positioning — TIDAK scroll */}
             <div
-              className="bg-white w-full max-w-7xl rounded-3xl shadow-2xl p-8 relative max-h-[92vh] overflow-y-auto"
+              className="bg-white w-full max-w-7xl rounded-3xl shadow-2xl relative overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-
-              {/* CLOSE */}
+              {/* Tombol close — di luar scrollable area agar selalu terlihat */}
               <button
                 onClick={onClose}
-                className="absolute top-5 right-5 p-2 rounded-full hover:bg-gray-100 transition"
+                className="absolute top-5 right-5 z-10 p-2 rounded-full hover:bg-gray-100 transition"
               >
                 <X size={22} />
               </button>
+
+              {/* Inner: konten yang bisa di-scroll, native scrollbar disembunyikan */}
+              <div
+                ref={scrollRef}
+                className="max-h-[92vh] overflow-y-scroll p-8 scrollbar-none"
+              >
 
               {/* HEADER */}
               <div className="flex justify-between items-start mb-10">
@@ -419,7 +469,22 @@ export default function DetailGaugeModal({
                   </table>
                 </div>
               </div>
-            </div>
+              </div>{/* end scrollable inner */}
+
+              {/* Custom scrollbar thumb — di luar inner div agar tidak ikut scroll */}
+              <div className="absolute right-1.5 top-0 bottom-0 w-[5px] pointer-events-none rounded-full">
+                <div
+                  className="absolute w-full rounded-full bg-gray-400"
+                  style={{
+                    height: thumbH,
+                    top:    thumbTop,
+                    opacity:    thumbVisible ? 0.55 : 0,
+                    transition: "opacity 0.35s ease",
+                  }}
+                />
+              </div>
+
+            </div>{/* end outer card */}
           </motion.div>
         </>
       )}

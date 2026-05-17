@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { FiHome, FiBarChart2, FiFileText, FiSettings, FiCalendar } from "react-icons/fi";
+import { FiHome, FiBarChart2, FiFileText, FiSettings, FiCalendar, FiBook } from "react-icons/fi";
 import { useAuth } from "../auth/useAuth";
 
 const menu = [
@@ -44,34 +44,54 @@ export default function Sidebar() {
         ))}
 
         {role === "admin" && (
-          <NavLink
-            to="/input-jadwal"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-              ${
-                isActive
-                  ? "bg-white text-[#A44A4A] shadow-sm"
-                  : "text-white/80 hover:bg-white/20 hover:text-white"
-              }`
-            }
-          >
-            <FiCalendar />
-            <span className="text-sm font-medium">
-              Input Jadwal
-            </span>
-          </NavLink>
+          <>
+            <NavLink
+              to="/input-jadwal"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                ${
+                  isActive
+                    ? "bg-white text-[#A44A4A] shadow-sm"
+                    : "text-white/80 hover:bg-white/20 hover:text-white"
+                }`
+              }
+            >
+              <FiCalendar />
+              <span className="text-sm font-medium">Input Jadwal</span>
+            </NavLink>
+
+            <NavLink
+              to="/input-rps"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                ${
+                  isActive
+                    ? "bg-white text-[#A44A4A] shadow-sm"
+                    : "text-white/80 hover:bg-white/20 hover:text-white"
+                }`
+              }
+            >
+              <FiBook />
+              <span className="text-sm font-medium">Input RPS</span>
+            </NavLink>
+          </>
         )}
 
       </div>
 
-      <div className="mt-auto flex items-center gap-3 text-white/70 hover:text-white cursor-pointer">
-
+      <NavLink
+        to="/setting"
+        className={({ isActive }) =>
+          `mt-auto flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+            isActive
+              ? "bg-white text-[#A44A4A] shadow-sm"
+              : "text-white/70 hover:bg-white/20 hover:text-white"
+          }`
+        }
+      >
         <FiSettings />
-        <span className="text-sm">
-          Setting
-        </span>
-
-      </div>
+        <span className="text-sm font-medium">Setting</span>
+      </NavLink>
     </div>
   );
 }

@@ -16,14 +16,15 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Gagal",
 };
 
+const FILTER_LABEL: Record<string, string> = {
+  dosen: "Dosen",
+  jumlah_pertemuan: "Jumlah Pertemuan",
+};
+
 export default function LaporanEvaluasi() {
   const [filters, setFilters] = useState<any>({
-    tanggal: "",
-    jam: "",
-    ruangan: "",
-    matkul: "",
     dosen: "",
-    kelas: "",
+    jumlah_pertemuan: "",
   });
 
   const [options, setOptions] = useState<any>({});
@@ -32,10 +33,9 @@ export default function LaporanEvaluasi() {
   const [loading, setLoading] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>("");
 
-  // 🔥 Realtime channel ref
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  const filterList = ["tanggal", "jam", "ruangan", "matkul", "dosen", "kelas"];
+  const filterList = ["dosen", "jumlah_pertemuan"];
 
   // =========================
   // TOGGLE FILTER
@@ -226,7 +226,7 @@ export default function LaporanEvaluasi() {
               }}
               className="px-4 py-2 bg-white rounded-xl shadow text-sm flex items-center gap-2"
             >
-              {filters[item] || item}
+              {filters[item] || FILTER_LABEL[item] || item}
               <FiChevronDown />
             </button>
 

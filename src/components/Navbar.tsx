@@ -54,7 +54,7 @@ export default function Navbar() {
   });
 
   return (
-    <div className="fixed top-4 left-72 right-6 z-40">
+    <div className="fixed top-4 left-72 right-4 z-40">
 
       <div className="flex justify-between items-center bg-white/80 backdrop-blur-md px-6 py-4 rounded-2xl shadow-sm border border-gray-100">
 
