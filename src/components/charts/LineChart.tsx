@@ -143,7 +143,9 @@ export default function ChartLine() {
                 fontSize: 12,
               }}
               labelStyle={{ fontWeight: 600, color: "#374151", marginBottom: 4 }}
-              formatter={(value: number) => `${value}%`}
+              formatter={(value: number | string | undefined) =>
+                value !== undefined ? `${value}%` : ""
+              }
             />
 
             <Line type="natural" dataKey="ceramah"    name="Ceramah"                stroke="#f87171" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
