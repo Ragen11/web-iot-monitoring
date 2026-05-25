@@ -1,6 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 import { FiBookOpen, FiTrash2 } from "react-icons/fi";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 type RPSEntry = {
   kodeMatkul: string;
@@ -20,20 +22,12 @@ const EMPTY_FORM: RPSEntry = {
 };
 
 export default function InputRPS() {
-  const [form, setForm] = useState<RPSEntry>(EMPTY_FORM);
-
-  // ✅ FIX ERROR TYPESCRIPT
-  const [errors, setErrors] = useState<FormErrors>({});
-
+  const [form, setForm]       = useState<RPSEntry>(EMPTY_FORM);
+  const [errors, setErrors]   = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
-
-  const [list, setList] = useState<RPSEntry[]>([]);
-
+  const [list, setList]       = useState<RPSEntry[]>([]);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const API_URL = import.meta.env.VITE_API_URL;
-
-  // =========================
-  // VALIDATION
-  // =========================
   const validate = (): FormErrors => {
     const e: FormErrors = {};
 
@@ -57,9 +51,6 @@ export default function InputRPS() {
     return e;
   };
 
-  // =========================
-  // HANDLE CHANGE
-  // =========================
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement
@@ -75,16 +66,12 @@ export default function InputRPS() {
           : value,
     }));
 
-    // HAPUS ERROR FIELD SAAT USER MENGETIK
     setErrors((prev) => ({
       ...prev,
       [name]: undefined,
     }));
   };
 
-  // =========================
-  // SUBMIT
-  // =========================
   const handleSubmit = async () => {
     const e = validate();
 
@@ -100,48 +87,41 @@ export default function InputRPS() {
 
       await axios.post(`${API_URL}/rps`, form);
 
-      // TAMBAHKAN KE LIST
       setList((prev) => [...prev, form]);
 
-      // RESET FORM
       setForm(EMPTY_FORM);
 
       // RESET ERROR
       setErrors({});
 
-      alert("Data RPS berhasil disimpan!");
+      toast.success("Data RPS berhasil disimpan!");
     } catch (err: any) {
       console.error("SUBMIT ERROR:", err);
 
-      alert(
-        err?.response?.data?.message ||
-          "Submit gagal!"
-      );
+      toast.error(err?.response?.data?.message || "Submit gagal!");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // DELETE
-  // =========================
   const handleDelete = (index: number) => {
-    setList((prev) =>
-      prev.filter((_, i) => i !== index)
-    );
+    setDeleteIndex(index);
+  };
+
+  const confirmDelete = () => {
+    if (deleteIndex === null) return;
+    setList((prev) => prev.filter((_, i) => i !== deleteIndex));
+    setDeleteIndex(null);
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-3xl">
       {/* HEADER */}
       <h1 className="text-xl font-semibold">
         Input RPS
       </h1>
 
-      {/* ========================= */}
-      {/* FORM CARD */}
-      {/* ========================= */}
-      <div className="bg-white rounded-2xl shadow p-6 space-y-5">
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-5">
         <div className="flex items-center gap-2 mb-1">
           <FiBookOpen
             className="text-[#A44A4A]"
@@ -153,9 +133,6 @@ export default function InputRPS() {
           </h2>
         </div>
 
-        {/* ========================= */}
-        {/* KODE MATKUL */}
-        {/* ========================= */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Kode Matkul
@@ -181,9 +158,6 @@ export default function InputRPS() {
           )}
         </div>
 
-        {/* ========================= */}
-        {/* PERTEMUAN */}
-        {/* ========================= */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Pertemuan ke
@@ -210,9 +184,6 @@ export default function InputRPS() {
           )}
         </div>
 
-        {/* ========================= */}
-        {/* MATERI */}
-        {/* ========================= */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Materi Pembelajaran
@@ -238,9 +209,6 @@ export default function InputRPS() {
           )}
         </div>
 
-        {/* ========================= */}
-        {/* PENGALAMAN */}
-        {/* ========================= */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Pengalaman Pembelajaran Mahasiswa
@@ -266,9 +234,6 @@ export default function InputRPS() {
           )}
         </div>
 
-        {/* ========================= */}
-        {/* BUTTON */}
-        {/* ========================= */}
         <button
           onClick={handleSubmit}
           disabled={loading}
@@ -284,11 +249,8 @@ export default function InputRPS() {
         </button>
       </div>
 
-      {/* ========================= */}
-      {/* LIST RPS */}
-      {/* ========================= */}
       {list.length > 0 && (
-        <div className="bg-white rounded-2xl shadow p-6">
+        <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
           <h2 className="font-semibold text-gray-700 mb-4">
             Data RPS yang Telah Diinput
           </h2>
@@ -356,6 +318,15 @@ export default function InputRPS() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        title="Hapus Data RPS"
+        message="Data RPS ini akan dihapus. Yakin ingin melanjutkan?"
+        confirmLabel="Ya, Hapus"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteIndex(null)}
+      />
     </div>
   );
 }

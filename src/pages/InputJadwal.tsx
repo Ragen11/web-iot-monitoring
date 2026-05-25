@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 import { FiChevronDown, FiX, FiUploadCloud, FiFile } from "react-icons/fi";
 import { BsFiletypeCsv, BsFiletypeXlsx, BsFiletypePdf, BsFiletypeTxt } from "react-icons/bs";
 
@@ -14,7 +15,6 @@ export default function InputJadwal() {
 
   const [jadwal, setJadwal] = useState<any[]>([]);
 
-  // FILTER STATE
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedDosen, setSelectedDosen] = useState<string[]>([]);
   const [selectedMatkul, setSelectedMatkul] = useState<string[]>([]);
@@ -23,9 +23,6 @@ export default function InputJadwal() {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // ===============================
-  // FETCH DATA JADWAL
-  // ===============================
   const fetchJadwal = async () => {
     try {
       const res = await axios.get(`${API_URL}/scheduled/jadwal`);
@@ -43,7 +40,6 @@ export default function InputJadwal() {
     };
   }, []);
 
-  // CLOSE DROPDOWN SAAT KLIK LUAR
   useEffect(() => {
     const handleClick = () => setActiveFilter(null);
     window.addEventListener("click", handleClick);
@@ -55,7 +51,6 @@ export default function InputJadwal() {
     setActiveFilter(activeFilter === name ? null : name);
   };
 
-  // LIST FILTER DATA
   const listDosen = [...new Set(jadwal.map((j) => j.dosen_utama))];
   const listMatkul = [...new Set(jadwal.map((j) => j.mata_kuliah))];
   const listKelas = [...new Set(jadwal.map((j) => j.kelas))];
@@ -68,9 +63,6 @@ export default function InputJadwal() {
     ),
   ];
 
-  // ===============================
-  // HANDLE FILE SELECT
-  // ===============================
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
@@ -100,19 +92,16 @@ export default function InputJadwal() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // ===============================
-  // HANDLE SUBMIT
-  // ===============================
   const handleSubmit = async () => {
     if (files.length === 0) {
-      alert("Pilih file terlebih dahulu!");
+      toast.error("Pilih file terlebih dahulu!");
       return;
     }
 
     const file = files[0];
 
     if (!file.name.endsWith(".csv")) {
-      alert("File harus format CSV!");
+      toast.error("File harus format CSV!");
       return;
     }
 
@@ -140,7 +129,7 @@ export default function InputJadwal() {
       );
 
       console.log(response.data);
-      alert("Upload berhasil!");
+      toast.success("Upload jadwal berhasil!");
 
       setFiles([]);
       setProgress(0);
@@ -156,7 +145,7 @@ export default function InputJadwal() {
         error.response?.data?.message ||
         "Upload gagal!";
 
-      alert(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -172,12 +161,12 @@ export default function InputJadwal() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
 
       <h1 className="text-xl font-semibold">Input Jadwal</h1>
 
       {/* UPLOAD CARD */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
 
         <h2 className="font-semibold mb-2">
           Media Upload
@@ -188,7 +177,7 @@ export default function InputJadwal() {
           to 1 file max
         </p>
 
-        <label className="border-2 border-dashed border-blue-300 rounded-xl p-10 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 transition">
+        <label className="border-2 border-dashed border-blue-300 rounded-xl p-6 sm:p-10 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 transition">
 
           <FiUploadCloud size={48} className="text-blue-400" />
 
@@ -291,13 +280,13 @@ export default function InputJadwal() {
       <div>
 
         {/* TITLE + FILTER */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
 
           <h2 className="font-semibold">
             Jadwal Perkuliahan
           </h2>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2">
 
             {/* DOSEN */}
             <FilterDropdown
@@ -346,7 +335,7 @@ export default function InputJadwal() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 
           {[
             "SENIN",

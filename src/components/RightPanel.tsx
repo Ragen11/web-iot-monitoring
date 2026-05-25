@@ -33,7 +33,7 @@ function ClassCard({ kode, matkul, jam, ruangan, accent, accentBg}: ClassCardPro
 
 export default function RightPanel() {
   return (
-    <div className="w-80 space-y-6">
+    <div className="w-full xl:w-80 space-y-6 shrink-0">
       <CalendarCard />
 
         {/* Kelas Saat Ini */}

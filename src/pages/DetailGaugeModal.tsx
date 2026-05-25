@@ -10,82 +10,64 @@ import {
   CartesianGrid,
 } from "recharts";
 import { X } from "lucide-react";
-
-const trendData = [
-  { day: "Sen", value: 90 },
-  { day: "Sel", value: 82 },
-  { day: "Rab", value: 96 },
-  { day: "Kam", value: 88 },
-  { day: "Jum", value: 99 },
-  { day: "Sab", value: 75 },
-  { day: "Min", value: 80 },
-];
-
-const rankingData = [
-  {
-    name: "Dr. Andi Wijaya",
-    attendance: 99,
-    status: "Sangat Baik",
-  },
-  {
-    name: "Dr. Budi Santoso",
-    attendance: 95,
-    status: "Baik",
-  },
-  {
-    name: "Dr. Citra Lestari",
-    attendance: 87,
-    status: "Cukup",
-  },
-  {
-    name: "Dr. Dimas Pratama",
-    attendance: 68,
-    status: "Warning",
-  },
-];
-
-const attendanceTable = [
-  {
-    matkul: "Kalkulus",
-    dosen: "Dr. Andi Wijaya",
-    hadir: 96,
-    terlambat: 3,
-    tidakHadir: 1,
-  },
-  {
-    matkul: "Machine Learning",
-    dosen: "Dr. Budi Santoso",
-    hadir: 90,
-    terlambat: 7,
-    tidakHadir: 3,
-  },
-  {
-    matkul: "Basis Data",
-    dosen: "Dr. Citra Lestari",
-    hadir: 84,
-    terlambat: 10,
-    tidakHadir: 6,
-  },
-  {
-    matkul: "Jaringan Komputer",
-    dosen: "Dr. Dimas Pratama",
-    hadir: 71,
-    terlambat: 18,
-    tidakHadir: 11,
-  },
-];
+import axios from "axios";
+import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
+import RangeToggle, { type Range } from "../components/RangeToggle";
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
 
+type Summary = {
+  gauge_value: number;
+  tepat_waktu_pct: number;
+  terlambat_pct: number;
+  tidak_hadir_pct: number;
+  total_pertemuan: number;
+};
+
+type TrendItem = {
+  day: string;
+  value: number;
+  date?: string;
+  total?: number;
+};
+
+type RankingItem = {
+  id: number;
+  name: string;
+  attendance: number;
+  status: string;
+  kode_dosen?: string;
+};
+
+type AttendanceItem = {
+  matkul: string;
+  dosen: string;
+  hadir: number;
+  terlambat: number;
+  tidakHadir: number;
+  kelas?: string;
+};
+
+type OptionItem = { kode: string; nama: string };
+
+type DashboardResp = {
+  summary: Summary;
+  trend: TrendItem[];
+  ranking: RankingItem[];
+  per_matkul: AttendanceItem[];
+};
+
+const RANGE_MAP: Record<Range, number> = { "1H": 1, "1M": 30, "1B": 90 };
+
 function GaugeChart({ value }: { value: number }) {
-  const radius = 100;
-  const stroke = 18;
-  const normalizedRadius = radius - stroke / 2;
-  const circumference = Math.PI * normalizedRadius;
-  const progress = (value / 100) * circumference;
+  // arcRadius HARUS sama dengan radius pada SVG path "A 110 110 ..."
+  const arcRadius     = 110;
+  const stroke        = 26;
+  const circumference = Math.PI * arcRadius;
+  const progress      = (value / 100) * circumference;
 
   return (
     <div className="relative flex items-center justify-center">
@@ -105,18 +87,18 @@ function GaugeChart({ value }: { value: number }) {
           fill="none"
           stroke="#9F4A4A"
           strokeWidth={stroke}
-          strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference - progress}
+          strokeLinecap="round"
           style={{
             transition: "stroke-dashoffset 1s ease",
           }}
         />
       </svg>
 
-      <div className="absolute top-12 flex flex-col items-center">
+      <div className="absolute top-16 flex flex-col items-center">
         <h1 className="text-5xl font-bold text-gray-800">
-          {value}%
+          {Math.round(value)}%
         </h1>
 
         <p className="text-gray-500 mt-1">
@@ -162,7 +144,9 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle[status as keyof typeof statusStyle]}`}
+      className={`px-3 py-1 rounded-full text-xs font-medium ${
+        statusStyle[status as keyof typeof statusStyle] ?? "bg-gray-100 text-gray-700"
+      }`}
     >
       {status}
     </span>
@@ -181,12 +165,72 @@ export default function DetailGaugeModal({
   const [thumbTop,     setThumbTop]     = useState(0);
   const [thumbVisible, setThumbVisible] = useState(false);
 
+  // ── DATA STATE ──
+  const [summary,    setSummary]    = useState<Summary | null>(null);
+  const [trend,      setTrend]      = useState<TrendItem[]>([]);
+  const [ranking,    setRanking]    = useState<RankingItem[]>([]);
+  const [perMatkul,  setPerMatkul]  = useState<AttendanceItem[]>([]);
+  const [loading,    setLoading]    = useState(false);
+
+  // ── FILTERS ──
+  const [range,        setRange]        = useState<Range>("1M");
+  const [filterDosen,  setFilterDosen]  = useState<string>("");
+  const [filterKelas,  setFilterKelas]  = useState<string>("");
+  const [dosenOpts,    setDosenOpts]    = useState<OptionItem[]>([]);
+  const [kelasOpts,    setKelasOpts]    = useState<string[]>([]);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
   /* ── ESC key ── */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  /* ── FETCH OPTIONS (sekali saja saat modal pertama buka) ── */
+  useEffect(() => {
+    if (!open || dosenOpts.length > 0) return;
+
+    axios.get(`${API_URL}/kehadiran/options`)
+      .then(res => {
+        setDosenOpts(res.data?.dosen ?? []);
+        setKelasOpts(res.data?.kelas ?? []);
+      })
+      .catch(err => console.error("❌ options error:", err));
+  }, [open, API_URL, dosenOpts.length]);
+
+  /* ── FETCH DASHBOARD setiap filter berubah ── */
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+
+        const params: any = {
+          range_days: RANGE_MAP[range] ?? 30,
+          trend_days: range === "1H" ? 1 : range === "1M" ? 7 : 30,
+        };
+        if (filterDosen) params.dosen = filterDosen;
+        if (filterKelas) params.kelas = filterKelas;
+
+        const res = await axios.get<DashboardResp>(`${API_URL}/kehadiran/dashboard`, { params });
+
+        setSummary(res.data.summary);
+        setTrend(res.data.trend);
+        setRanking(res.data.ranking);
+        setPerMatkul(res.data.per_matkul);
+
+      } catch (err) {
+        console.error("❌ dashboard error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, [open, range, filterDosen, filterKelas, API_URL]);
 
   /* ── Hitung posisi thumb ── */
   const calcThumb = () => {
@@ -213,8 +257,8 @@ export default function DetailGaugeModal({
     const el = scrollRef.current;
     if (!el || !open) return;
 
-    calcThumb();          // hitung posisi awal
-    el.scrollTop = 0;     // reset scroll ke atas setiap buka modal
+    calcThumb();
+    el.scrollTop = 0;
 
     const onScroll     = () => showBar();
     const onEnter      = () => showBar();
@@ -230,7 +274,7 @@ export default function DetailGaugeModal({
       el.removeEventListener("mouseleave", onLeave);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [open]);
+  }, [open, summary, trend, ranking, perMatkul]);
 
   return (
     <AnimatePresence>
@@ -252,96 +296,91 @@ export default function DetailGaugeModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6"
           >
-            {/* Outer: white card, relative positioning — TIDAK scroll */}
             <div
-              className="bg-white w-full max-w-7xl rounded-3xl shadow-2xl relative overflow-hidden"
+              className="bg-white w-full max-w-7xl rounded-2xl sm:rounded-3xl shadow-2xl relative overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Tombol close — di luar scrollable area agar selalu terlihat */}
               <button
                 onClick={onClose}
-                className="absolute top-5 right-5 z-10 p-2 rounded-full hover:bg-gray-100 transition"
+                className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10 p-2 rounded-full hover:bg-gray-100 transition"
               >
                 <X size={22} />
               </button>
 
-              {/* Inner: konten yang bisa di-scroll, native scrollbar disembunyikan */}
               <div
                 ref={scrollRef}
-                className="max-h-[92vh] overflow-y-scroll p-8 scrollbar-none"
+                className="max-h-[95vh] sm:max-h-[92vh] overflow-y-scroll p-4 sm:p-8 scrollbar-none"
               >
 
               {/* HEADER */}
-              <div className="flex justify-between items-start mb-10">
+              <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6 sm:mb-10 pr-10 sm:pr-12">
 
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-900">
+                  <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">
                     Kehadiran Dosen
                   </h1>
 
-                  <p className="text-gray-500 mt-2">
+                  <p className="text-gray-500 mt-1 sm:mt-2 text-sm sm:text-base">
                     Monitoring dan analisis performa kehadiran dosen
+                    {loading && <span className="ml-2 text-xs text-gray-400">(memuat…)</span>}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4 pr-12">
-                  <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
-                    <option>Semua Dosen</option>
-                  </select>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <FilterDropdown
+                    width="w-44"
+                    label="Semua Dosen"
+                    value={filterDosen}
+                    onChange={setFilterDosen}
+                    options={dosenOpts.map<FilterOption>((d) => ({
+                      value: d.kode,
+                      label: d.nama || d.kode,
+                    }))}
+                  />
 
-                  <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
-                    <option>Semua Kelas</option>
-                  </select>
+                  <FilterDropdown
+                    width="w-40"
+                    label="Semua Kelas"
+                    value={filterKelas}
+                    onChange={setFilterKelas}
+                    options={kelasOpts.map<FilterOption>((k) => ({ value: k, label: k }))}
+                  />
 
-                  <div className="flex gap-2 bg-gray-100 rounded-xl p-1 text-sm">
-                    <button className="bg-white px-3 py-1 rounded-lg shadow-sm font-medium">
-                      1H
-                    </button>
-
-                    <button className="px-3 py-1 text-gray-500">
-                      1M
-                    </button>
-
-                    <button className="px-3 py-1 text-gray-500">
-                      1B
-                    </button>
-                  </div>
+                  <RangeToggle value={range} onChange={setRange} />
                 </div>
               </div>
 
               {/* TOP SECTION */}
-              <div className="grid grid-cols-2 gap-10 items-center mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-center mb-8 sm:mb-12">
 
-                {/* GAUGE */}
                 <div className="flex justify-center">
-                  <GaugeChart value={96} />
+                  <GaugeChart value={summary?.gauge_value ?? 0} />
                 </div>
 
-                {/* KPI */}
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-2 gap-3 sm:gap-5">
                   <KPIBox
                     title="Tepat Waktu"
-                    value="86%"
+                    value={`${summary?.tepat_waktu_pct ?? 0}%`}
                     color="#16A34A"
                   />
 
                   <KPIBox
                     title="Terlambat"
-                    value="10%"
+                    value={`${summary?.terlambat_pct ?? 0}%`}
                     color="#D97706"
                   />
 
                   <KPIBox
                     title="Tidak Hadir"
-                    value="4%"
+                    value={`${summary?.tidak_hadir_pct ?? 0}%`}
                     color="#DC2626"
                   />
 
                   <KPIBox
                     title="Total Pertemuan"
-                    value="128"
+                    value={`${summary?.total_pertemuan ?? 0}`}
                     color="#111827"
                   />
                 </div>
@@ -355,13 +394,13 @@ export default function DetailGaugeModal({
                   </h2>
 
                   <p className="text-gray-500 mt-1">
-                    Persentase kehadiran dosen selama 7 hari terakhir
+                    Persentase kehadiran dosen pada periode terpilih
                   </p>
                 </div>
 
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trendData}>
+                    <LineChart data={trend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
 
                       <XAxis dataKey="day" />
@@ -392,26 +431,30 @@ export default function DetailGaugeModal({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-5">
-                  {rankingData.map((item, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex items-center justify-between"
-                    >
-                      <div>
-                        <h3 className="font-semibold text-gray-800 text-lg">
-                          {item.name}
-                        </h3>
+                {ranking.length === 0 ? (
+                  <p className="text-gray-400 text-sm">Belum ada data kehadiran.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
+                    {ranking.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex items-center justify-between"
+                      >
+                        <div>
+                          <h3 className="font-semibold text-gray-800 text-lg">
+                            {item.name || item.kode_dosen}
+                          </h3>
 
-                        <p className="text-gray-500 text-sm mt-1">
-                          Kehadiran {item.attendance}%
-                        </p>
+                          <p className="text-gray-500 text-sm mt-1">
+                            Kehadiran {item.attendance}%
+                          </p>
+                        </div>
+
+                        <StatusBadge status={item.status} />
                       </div>
-
-                      <StatusBadge status={item.status} />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* TABLE */}
@@ -439,39 +482,47 @@ export default function DetailGaugeModal({
                     </thead>
 
                     <tbody>
-                      {attendanceTable.map((item, index) => (
-                        <tr
-                          key={index}
-                          className="bg-gray-50 hover:bg-gray-100 transition"
-                        >
-                          <td className="p-5 rounded-l-2xl font-semibold text-gray-800">
-                            {item.matkul}
-                          </td>
-
-                          <td className="p-5 text-gray-700">
-                            {item.dosen}
-                          </td>
-
-                          <td className="p-5 text-green-600 font-semibold">
-                            {item.hadir}%
-                          </td>
-
-                          <td className="p-5 text-yellow-600 font-semibold">
-                            {item.terlambat}%
-                          </td>
-
-                          <td className="p-5 rounded-r-2xl text-red-600 font-semibold">
-                            {item.tidakHadir}%
+                      {perMatkul.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-5 text-center text-gray-400 text-sm">
+                            Belum ada data kehadiran per mata kuliah.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        perMatkul.map((item, index) => (
+                          <tr
+                            key={index}
+                            className="bg-gray-50 hover:bg-gray-100 transition"
+                          >
+                            <td className="p-5 rounded-l-2xl font-semibold text-gray-800">
+                              {item.matkul}
+                            </td>
+
+                            <td className="p-5 text-gray-700">
+                              {item.dosen}
+                            </td>
+
+                            <td className="p-5 text-green-600 font-semibold">
+                              {item.hadir}%
+                            </td>
+
+                            <td className="p-5 text-yellow-600 font-semibold">
+                              {item.terlambat}%
+                            </td>
+
+                            <td className="p-5 rounded-r-2xl text-red-600 font-semibold">
+                              {item.tidakHadir}%
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
               </div>{/* end scrollable inner */}
 
-              {/* Custom scrollbar thumb — di luar inner div agar tidak ikut scroll */}
+              {/* Custom scrollbar thumb */}
               <div className="absolute right-1.5 top-0 bottom-0 w-[5px] pointer-events-none rounded-full">
                 <div
                   className="absolute w-full rounded-full bg-gray-400"

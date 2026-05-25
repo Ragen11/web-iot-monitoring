@@ -1,5 +1,6 @@
-import { FiBookOpen, FiLayers, FiClock, FiMonitor } from "react-icons/fi";
-import { useState } from "react";
+import { FiBookOpen, FiLayers, FiClock, FiMessageCircle } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 import Card from "../components/Card";
 import ChartPie from "../components/charts/PieChart";
@@ -12,84 +13,103 @@ import DetailGaugeModal from "../pages/DetailGaugeModal";
 
 export default function Dashboard() {
 
-  // PIE MODAL
-  const [openPieDetail, setOpenPieDetail] = useState(false);
-
-  // GAUGE MODAL
+  const [openPieDetail, setOpenPieDetail]     = useState(false);
   const [openGaugeDetail, setOpenGaugeDetail] = useState(false);
+
+  // KPI Cards data
+  const [totalKelas,       setTotalKelas]       = useState<number | null>(null);
+  const [totalMatkul,      setTotalMatkul]      = useState<number | null>(null);
+  const [tepatWaktuPct,    setTepatWaktuPct]    = useState<number | null>(null);
+  const [dominantActivity, setDominantActivity] = useState<string>("-");
+  const [dominantPct,      setDominantPct]      = useState<number>(0);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    // dashboard summary (total kelas, matkul, tepat waktu)
+    axios
+      .get(`${API_URL}/dashboard/summary`, { params: { range_days: 30 } })
+      .then((res) => {
+        setTotalKelas(res.data?.total_kelas ?? 0);
+        setTotalMatkul(res.data?.total_matkul ?? 0);
+        setTepatWaktuPct(res.data?.tepat_waktu_pct ?? 0);
+      })
+      .catch((err) => console.error("❌ dashboard summary error:", err));
+
+    // aktivitas dominan
+    axios
+      .get(`${API_URL}/aktivitas/summary`, { params: { range_days: 30 } })
+      .then((res) => {
+        setDominantActivity(res.data?.dominant_activity ?? "-");
+        setDominantPct(res.data?.dominant_pct ?? 0);
+      })
+      .catch((err) => console.error("❌ dominant activity error:", err));
+  }, [API_URL]);
+
+  // helper format
+  const fmt = (n: number | null) => (n === null ? "…" : n.toLocaleString("id-ID"));
 
   return (
     <>
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
 
-        <div className="flex gap-6 mt-6">
+        <div className="flex flex-col xl:flex-row gap-6 mt-6">
 
-          {/* MAIN */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-6 min-w-0">
 
-            {/* KPI */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card
               title="Total Kelas"
-              value="7,265"
+              value={fmt(totalKelas)}
               icon={<FiLayers />}
               iconBg="bg-[#fdf0f0]"
               iconColor="text-[#A44A4A]"
             />
             <Card
               title="Total Matkul"
-              value="3,842"
+              value={fmt(totalMatkul)}
               icon={<FiBookOpen />}
               iconBg="bg-[#f0f4ff]"
               iconColor="text-blue-500"
             />
             <Card
               title="Dosen Tepat Waktu"
-              value="91%"
+              value={tepatWaktuPct === null ? "…" : `${tepatWaktuPct}%`}
               icon={<FiClock />}
               iconBg="bg-[#f0fdf4]"
               iconColor="text-green-500"
             />
             <Card
-              title="Metode Pembelajaran"
-              value="4 Jenis"
-              icon={<FiMonitor />}
+              title="Aktivitas Dominan"
+              value={dominantActivity === "-" ? "-" : `${dominantActivity} (${dominantPct}%)`}
+              icon={<FiMessageCircle />}
               iconBg="bg-[#fdf8f0]"
               iconColor="text-orange-400"
             />
           </div>
-
-            {/* CHARTS */}
-            <div className="grid grid-cols-2 gap-4">
-
-              {/* PIE CHART */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ChartPie
                 onDetailClick={() => setOpenPieDetail(true)}
               />
 
-              {/* GAUGE */}
               <Gauge
                 onDetailClick={() => setOpenGaugeDetail(true)}
               />
 
             </div>
 
-            {/* LINE CHART */}
             <ChartLine />
           </div>
 
-          {/* RIGHT PANEL */}
           <RightPanel />
         </div>
       </div>
 
-      {/* PIE DETAIL MODAL */}
       <DetailPieModal
         open={openPieDetail}
         onClose={() => setOpenPieDetail(false)}
       />
 
-      {/* GAUGE DETAIL MODAL */}
       <DetailGaugeModal
         open={openGaugeDetail}
         onClose={() => setOpenGaugeDetail(false)}

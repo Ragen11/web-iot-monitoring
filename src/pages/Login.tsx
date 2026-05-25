@@ -63,10 +63,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F3F4F8] px-4">
 
-      <div className="w-full max-w-5xl h-[600px] bg-white rounded-3xl shadow-2xl overflow-hidden grid grid-cols-2">
+      <div className="w-full max-w-5xl min-h-[500px] lg:h-[600px] bg-white rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
 
         {/* LEFT */}
-        <div className="flex flex-col justify-center px-16">
+        <div className="flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-10 lg:py-0 order-2 lg:order-1">
 
           <div className="mb-8 flex justify-center">
             <span className="bg-[#E7C5C5] text-[#A44A4A] px-6 py-2 rounded-xl font-semibold text-sm">
@@ -150,19 +150,19 @@ export default function Login() {
         </div>
 
         {/* RIGHT */}
-        <div className="bg-[#A44A4A] flex flex-col justify-center items-center text-white rounded-l-[120px]">
+        <div className="bg-[#A44A4A] flex flex-col justify-center items-center text-white py-10 lg:py-0 lg:rounded-l-[120px] order-1 lg:order-2">
 
           <img
             src={illustration}
             alt="login"
-            className="w-72 mb-6"
+            className="w-40 sm:w-56 lg:w-72 mb-4 lg:mb-6"
           />
 
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-lg sm:text-xl font-semibold">
             Welcome Back!
           </h2>
 
-          <p className="text-sm text-white/80 mt-2 text-center px-8">
+          <p className="text-xs sm:text-sm text-white/80 mt-2 text-center px-8">
             Monitoring and evaluation system for better classroom management.
           </p>
 

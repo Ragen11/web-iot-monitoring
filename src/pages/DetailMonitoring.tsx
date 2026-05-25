@@ -1,6 +1,8 @@
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { toast } from "sonner";
+import { FiChevronRight, FiArrowLeft } from "react-icons/fi";
 import { supabase } from "../lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -16,7 +18,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function DetailMonitoring() {
   const { state } = useLocation();
-  const { id } = useParams();
+  const { id }    = useParams();
+  const navigate  = useNavigate();
 
   const [data, setData] = useState<any>(state || null);
   const [loading, setLoading] = useState(true);
@@ -29,9 +32,6 @@ export default function DetailMonitoring() {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // =========================
-  // FETCH DETAIL MONITORING
-  // =========================
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -93,9 +93,6 @@ export default function DetailMonitoring() {
       });
   }, [id, API_URL]);
 
-  // =========================
-  // CLEANUP REALTIME
-  // =========================
   useEffect(() => {
     return () => {
       if (channelRef.current) {
@@ -105,9 +102,6 @@ export default function DetailMonitoring() {
     };
   }, []);
 
-  // =========================
-  // AUTO HIDE SCROLLBAR
-  // =========================
   useEffect(() => {
     const html = document.documentElement;
 
@@ -138,9 +132,6 @@ export default function DetailMonitoring() {
     };
   }, []);
 
-  // =========================
-  // REALTIME REPORT STATUS
-  // =========================
   const subscribeToReport = (reportId: number) => {
     return new Promise<void>((resolve, reject) => {
       if (channelRef.current) {
@@ -195,9 +186,6 @@ export default function DetailMonitoring() {
     });
   };
 
-  // =========================
-  // GENERATE REPORT
-  // =========================
   const handleGenerate = async () => {
     try {
       setLoadingReport(true);
@@ -316,7 +304,7 @@ export default function DetailMonitoring() {
         err?.response?.data
       );
 
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           err?.response?.data?.detail?.[0]?.msg ||
           err?.message ||
@@ -331,16 +319,10 @@ export default function DetailMonitoring() {
     }
   };
 
-  // =========================
-  // LOADING
-  // =========================
   if (loading) {
     return <p className="p-6">Loading...</p>;
   }
 
-  // =========================
-  // DATA TIDAK ADA
-  // =========================
   if (!data) {
     return (
       <p className="p-6 text-red-500">
@@ -350,22 +332,36 @@ export default function DetailMonitoring() {
   }
 
   return (
-    <div className="p-6">
-      {/* HEADER */}
-      <div className="flex items-center mb-6">
-        <h1 className="text-xl font-semibold">
+    <div className="p-4 sm:p-6">
+
+      {/* BREADCRUMB */}
+      <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-3">
+        <button
+          onClick={() => navigate("/monitoring")}
+          className="hover:text-[#A44A4A] transition flex items-center gap-1"
+        >
+          <FiArrowLeft size={13} />
           Hasil Monitoring
-        </h1>
+        </button>
+        <FiChevronRight size={12} />
+        <span className="text-gray-600 font-medium truncate max-w-[200px]">
+          {data?.matkul || "Detail"}
+        </span>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm space-y-6">
+      {/* HEADER */}
+      <div className="flex items-center mb-6">
+        <h1 className="text-xl font-semibold">Detail Monitoring</h1>
+      </div>
+
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm space-y-6">
         {/* DETAIL KELAS */}
         <div>
           <h2 className="font-semibold mb-4">
             Detail Kelas
           </h2>
 
-          <div className="grid grid-cols-2 gap-y-2 text-sm">
+          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-y-2 text-sm">
             <p>Mata Kuliah</p>
             <p>
               : {data.matkul} ({data.kode})
@@ -403,7 +399,7 @@ export default function DetailMonitoring() {
             Aktivitas Kelas
           </p>
 
-          <div className="bg-gray-100 p-6 rounded-xl">
+          <div className="bg-gray-100 p-4 sm:p-6 rounded-xl">
             <div className="flex h-4 rounded-full overflow-hidden">
               <div className="bg-purple-500 w-1/3"></div>
 
@@ -419,7 +415,7 @@ export default function DetailMonitoring() {
               <span>10.00</span>
             </div>
 
-            <div className="flex gap-4 text-xs mt-3">
+            <div className="flex flex-wrap gap-3 sm:gap-4 text-xs mt-3">
               <span className="text-purple-500">
                 • Ceramah
               </span>
@@ -442,14 +438,16 @@ export default function DetailMonitoring() {
           </p>
 
           {data.video_url ? (
-            <iframe
-              src={data.video_url}
-              className="w-[400px] h-[250px] rounded-lg"
-              allow="autoplay"
-              title="Video Monitoring"
-            />
+            <div className="w-full max-w-[400px] aspect-video">
+              <iframe
+                src={data.video_url}
+                className="w-full h-full rounded-lg"
+                allow="autoplay"
+                title="Video Monitoring"
+              />
+            </div>
           ) : (
-            <div className="w-60 h-40 bg-gray-200 flex items-center justify-center rounded-lg">
+            <div className="w-full max-w-[400px] aspect-video bg-gray-200 flex items-center justify-center rounded-lg text-sm text-gray-500">
               Tidak ada video
             </div>
           )}
@@ -457,7 +455,7 @@ export default function DetailMonitoring() {
 
         {/* PDF */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
             <p className="text-sm font-medium">
               Preview Laporan
             </p>
@@ -465,7 +463,7 @@ export default function DetailMonitoring() {
             <button
               onClick={handleGenerate}
               disabled={loadingReport}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm transition ${
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm transition w-full sm:w-auto justify-center ${
                 loadingReport
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-[#A44A4A] hover:bg-[#8f3e3e]"
@@ -486,11 +484,11 @@ export default function DetailMonitoring() {
             {pdfUrl ? (
               <iframe
                 src={pdfUrl}
-                className="w-full h-[600px]"
+                className="w-full h-[400px] sm:h-[500px] lg:h-[600px]"
                 title="PDF Laporan"
               />
             ) : (
-              <div className="h-[300px] flex items-center justify-center text-gray-400 text-sm">
+              <div className="h-[200px] sm:h-[300px] flex items-center justify-center text-gray-400 text-sm">
                 Klik "Generate Laporan" untuk membuat
                 laporan sesi ini
               </div>

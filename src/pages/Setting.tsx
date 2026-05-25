@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import ConfirmDialog from "../components/ConfirmDialog";
 import {
   FiUser,
   FiInfo,
@@ -10,6 +12,7 @@ import {
 export default function Setting() {
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -17,11 +20,11 @@ export default function Setting() {
   };
 
   return (
-    <div className="p-6 space-y-5 max-w-3xl">
+    <div className="p-4 sm:p-6 space-y-5 max-w-3xl">
       <h1 className="text-xl font-semibold">Pengaturan</h1>
 
       {/* PROFIL */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
           <FiUser className="text-[#A44A4A]" size={18} />
           <h2 className="font-semibold text-gray-700">Profil</h2>
@@ -51,7 +54,7 @@ export default function Setting() {
       </div>
 
       {/* INFO APLIKASI */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
           <FiInfo className="text-[#A44A4A]" size={18} />
           <h2 className="font-semibold text-gray-700">Info Aplikasi</h2>
@@ -85,7 +88,7 @@ export default function Setting() {
       </div>
 
       {/* KEAMANAN */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
           <FiShield className="text-[#A44A4A]" size={18} />
           <h2 className="font-semibold text-gray-700">Keamanan</h2>
@@ -107,7 +110,7 @@ export default function Setting() {
       </div>
 
       {/* AKUN — LOGOUT */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
           <FiLogOut className="text-red-500" size={18} />
           <h2 className="font-semibold text-gray-700">Akun</h2>
@@ -118,12 +121,21 @@ export default function Setting() {
         </p>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setConfirmLogout(true)}
           className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-100 transition"
         >
           <FiLogOut size={15} />
           Logout
         </button>
+
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Konfirmasi Logout"
+        message="Anda akan keluar dari sesi ini. Lanjutkan?"
+        confirmLabel="Ya, Logout"
+        onConfirm={() => { setConfirmLogout(false); handleLogout(); }}
+        onCancel={() => setConfirmLogout(false)}
+      />
       </div>
     </div>
   );

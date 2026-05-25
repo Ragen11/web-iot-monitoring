@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { FiChevronDown } from "react-icons/fi";
+import { toast } from "sonner";
 import { supabase } from "../lib/supabase"; // 🔥 sesuaikan path
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -28,7 +29,6 @@ export default function LaporanEvaluasi() {
   });
 
   const [options, setOptions] = useState<any>({});
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>("");
@@ -37,25 +37,6 @@ export default function LaporanEvaluasi() {
 
   const filterList = ["dosen", "jumlah_pertemuan"];
 
-  // =========================
-  // TOGGLE FILTER
-  // =========================
-  const toggleFilter = (name: string) => {
-    setActiveFilter(activeFilter === name ? null : name);
-  };
-
-  // =========================
-  // CLOSE DROPDOWN
-  // =========================
-  useEffect(() => {
-    const handleClick = () => setActiveFilter(null);
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, []);
-
-  // =========================
-  // FETCH FILTER OPTIONS
-  // =========================
   useEffect(() => {
     const fetchFilters = async () => {
       try {
@@ -68,9 +49,6 @@ export default function LaporanEvaluasi() {
     fetchFilters();
   }, [filters]);
 
-  // =========================
-  // 🧹 CLEANUP CHANNEL ON UNMOUNT
-  // =========================
   useEffect(() => {
     return () => {
       if (channelRef.current) {
@@ -84,9 +62,6 @@ export default function LaporanEvaluasi() {
     setFilters((prev: any) => ({ ...prev, [key]: value }));
   };
 
-  // =========================
-  // 🔥 SUBSCRIBE REALTIME
-  // =========================
   const subscribeToReport = (reportId: number) => {
     return new Promise<void>((resolve, reject) => {
       // 🛑 Cleanup channel lama kalau ada
@@ -142,9 +117,6 @@ export default function LaporanEvaluasi() {
     });
   };
 
-  // =========================
-  // GENERATE REPORT
-  // =========================
   const handleGenerate = async () => {
     try {
       setLoading(true);
@@ -198,7 +170,7 @@ export default function LaporanEvaluasi() {
       }
     } catch (err: any) {
       console.error("GENERATE ERROR:", err);
-      alert(
+      toast.error(
         err?.response?.data?.message || err?.message || "Terjadi kesalahan"
       );
     } finally {
@@ -213,50 +185,28 @@ export default function LaporanEvaluasi() {
     : "Generate";
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="text-xl font-semibold mb-6">Laporan Evaluasi</h1>
 
-      <div className="flex flex-wrap gap-3 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6 items-center">
         {filterList.map((item) => (
-          <div key={item} className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFilter(item);
-              }}
-              className="px-4 py-2 bg-white rounded-xl shadow text-sm flex items-center gap-2"
-            >
-              {filters[item] || FILTER_LABEL[item] || item}
-              <FiChevronDown />
-            </button>
-
-            {activeFilter === item && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute top-12 w-52 bg-white shadow-lg rounded-xl p-2 z-20"
-              >
-                {options[item]?.length > 0 ? (
-                  options[item].map((opt: string, i: number) => (
-                    <div
-                      key={i}
-                      onClick={() => handleSelect(item, opt)}
-                      className="px-2 py-1 cursor-pointer hover:bg-gray-100 rounded"
-                    >
-                      {opt}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-400 text-sm">Tidak ada data</p>
-                )}
-              </div>
-            )}
-          </div>
+          <FilterDropdown
+            key={item}
+            width="w-48"
+            label={FILTER_LABEL[item] || item}
+            value={filters[item] || ""}
+            onChange={(v) => handleSelect(item, v)}
+            options={(options[item] || []).map((opt: string) => ({
+              value: opt,
+              label: opt,
+            } as FilterOption))}
+          />
         ))}
 
         <button
           disabled={!isComplete || loading}
           onClick={handleGenerate}
-          className={`px-5 py-2 rounded-lg min-w-[160px] flex items-center justify-center gap-2 text-white transition
+          className={`px-5 py-2 rounded-lg w-full sm:w-auto sm:min-w-[160px] flex items-center justify-center gap-2 text-white transition
             ${
               !isComplete || loading
                 ? "bg-gray-400 cursor-not-allowed"
@@ -275,11 +225,11 @@ export default function LaporanEvaluasi() {
         {pdfUrl ? (
           <iframe
             src={pdfUrl}
-            className="w-full h-[700px]"
+            className="w-full h-[400px] sm:h-[550px] lg:h-[700px]"
             title="PDF Viewer"
           />
         ) : (
-          <div className="h-[500px] flex items-center justify-center text-gray-400">
+          <div className="h-[300px] sm:h-[400px] lg:h-[500px] flex items-center justify-center text-gray-400 text-sm">
             Belum ada laporan
           </div>
         )}

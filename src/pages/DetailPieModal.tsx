@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PieChart,
@@ -7,49 +7,38 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { X } from "lucide-react";
-
-const summaryData = [
-  { name: "Ceramah", value: 52.1, color: "#9F4A4A" },
-  { name: "Tanya Jawab", value: 22.8, color: "#000000" },
-  { name: "Diskusi", value: 13.9, color: "#E6C7C7" },
-  { name: "Tidak Ada", value: 11.2, color: "#6B7280" },
-];
-
-const tableData = [
-  {
-    matkul: "Kalkulus",
-    ceramah: 52,
-    tanya: 22,
-    diskusi: 14,
-    tidakAda: 11,
-  },
-  {
-    matkul: "Persamaan Diferensial",
-    ceramah: 67,
-    tanya: 15,
-    diskusi: 10,
-    tidakAda: 8,
-  },
-  {
-    matkul: "Proposal Tugas Akhir",
-    ceramah: 34,
-    tanya: 40,
-    diskusi: 18,
-    tidakAda: 8,
-  },
-  {
-    matkul: "Machine Learning",
-    ceramah: 48,
-    tanya: 27,
-    diskusi: 20,
-    tidakAda: 5,
-  },
-];
+import axios from "axios";
+import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
+import RangeToggle, { type Range } from "../components/RangeToggle";
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
+
+type Summary = {
+  ceramah_pct: number;
+  tanya_jawab_pct: number;
+  diskusi_pct: number;
+  diam_pct: number;
+  total_pertemuan: number;
+};
+
+type MatkulItem = {
+  matkul: string;
+  kode_matkul: string;
+  kelas?: string;
+  dosen?: string;
+  ceramah: number;
+  tanya: number;
+  diskusi: number;
+  tidakAda: number;
+  total_pertemuan: number;
+};
+
+type OptionItem = { kode: string; nama: string };
+
+const RANGE_MAP: Record<Range, number> = { "1H": 1, "1M": 30, "1B": 90 };
 
 function ProgressBar({ value, color }: { value: number; color: string }) {
   return (
@@ -73,20 +62,76 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
 
 export default function DetailPieModal({ open, onClose }: Props) {
 
+  const [summary, setSummary]       = useState<Summary | null>(null);
+  const [perMatkul, setPerMatkul]   = useState<MatkulItem[]>([]);
+  const [loading, setLoading]       = useState(false);
+
+  // FILTERS
+  const [range,       setRange]       = useState<Range>("1M");
+  const [filterDosen, setFilterDosen] = useState<string>("");
+  const [filterKelas, setFilterKelas] = useState<string>("");
+
+  // OPTIONS
+  const [dosenOpts, setDosenOpts] = useState<OptionItem[]>([]);
+  const [kelasOpts, setKelasOpts] = useState<string[]>([]);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
   // ESC close
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  // FETCH OPTIONS sekali saat modal buka
+  useEffect(() => {
+    if (!open || dosenOpts.length > 0) return;
+
+    axios.get(`${API_URL}/aktivitas/options`)
+      .then(res => {
+        setDosenOpts(res.data?.dosen ?? []);
+        setKelasOpts(res.data?.kelas ?? []);
+      })
+      .catch(err => console.error("❌ options error:", err));
+  }, [open, API_URL, dosenOpts.length]);
+
+  // FETCH DASHBOARD setiap filter berubah
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+
+        const params: any = { range_days: RANGE_MAP[range] ?? 30 };
+        if (filterDosen) params.dosen = filterDosen;
+        if (filterKelas) params.kelas = filterKelas;
+
+        const res = await axios.get(`${API_URL}/aktivitas/dashboard`, { params });
+        setSummary(res.data?.summary ?? null);
+        setPerMatkul(res.data?.per_matkul ?? []);
+      } catch (err) {
+        console.error("❌ aktivitas dashboard error:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    window.addEventListener("keydown", handleEsc);
+    fetchDashboard();
+  }, [open, range, filterDosen, filterKelas, API_URL]);
 
-    return () => {
-      window.removeEventListener("keydown", handleEsc);
-    };
-  }, [onClose]);
+  const summaryData = [
+    { name: "Ceramah",     value: summary?.ceramah_pct     ?? 0, color: "#9F4A4A" },
+    { name: "Tanya Jawab", value: summary?.tanya_jawab_pct ?? 0, color: "#000000" },
+    { name: "Diskusi",     value: summary?.diskusi_pct     ?? 0, color: "#E6C7C7" },
+    { name: "Tidak Ada",   value: summary?.diam_pct        ?? 0, color: "#6B7280" },
+  ];
+
+  const hasData   = summaryData.some(d => d.value > 0);
+  const chartData = summaryData.filter(d => d.value > 0); // buang 0% agar gap konsisten
 
   return (
     <AnimatePresence>
@@ -108,71 +153,74 @@ export default function DetailPieModal({ open, onClose }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6"
           >
             <div
-              className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl p-8 relative max-h-[90vh] overflow-y-auto"
+              className="bg-white w-full max-w-6xl rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 relative max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
 
               {/* CLOSE BUTTON */}
               <button
                 onClick={onClose}
-                className="absolute top-5 right-5 p-2 rounded-full hover:bg-gray-100 transition"
+                className="absolute top-3 right-3 sm:top-5 sm:right-5 p-2 rounded-full hover:bg-gray-100 transition"
               >
                 <X size={22} />
               </button>
 
               {/* HEADER */}
-              <div className="flex justify-between items-start mb-8">
+              <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6 sm:mb-8 pr-10 sm:pr-12">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     Aktivitas Pembelajaran
                   </h1>
-                  <p className="text-gray-500 mt-1">
+                  <p className="text-gray-500 mt-1 text-sm sm:text-base">
                     Detail distribusi metode pembelajaran per mata kuliah
+                    {loading && <span className="ml-2 text-xs text-gray-400">(memuat…)</span>}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4 pr-12">
-                  <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
-                    <option>Semua Dosen</option>
-                  </select>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <FilterDropdown
+                    width="w-44"
+                    label="Semua Dosen"
+                    value={filterDosen}
+                    onChange={setFilterDosen}
+                    options={dosenOpts.map<FilterOption>((d) => ({
+                      value: d.kode,
+                      label: d.nama || d.kode,
+                    }))}
+                  />
 
-                  <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
-                    <option>Semua Kelas</option>
-                  </select>
+                  <FilterDropdown
+                    width="w-40"
+                    label="Semua Kelas"
+                    value={filterKelas}
+                    onChange={setFilterKelas}
+                    options={kelasOpts.map<FilterOption>((k) => ({ value: k, label: k }))}
+                  />
 
-                  <div className="flex gap-2 bg-gray-100 rounded-xl p-1 text-sm">
-                    <button className="bg-white px-3 py-1 rounded-lg shadow-sm font-medium">
-                      1H
-                    </button>
-                    <button className="px-3 py-1 text-gray-500">
-                      1M
-                    </button>
-                    <button className="px-3 py-1 text-gray-500">
-                      1B
-                    </button>
-                  </div>
+                  <RangeToggle value={range} onChange={setRange} />
                 </div>
               </div>
 
               {/* TOP SUMMARY */}
-              <div className="grid grid-cols-2 gap-1 items-center mb-10 pr-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center mb-8 sm:mb-10">
 
                 {/* PIE */}
                 <div className="flex justify-center">
-                  <div className="w-72 h-72">
+                  <div className="w-56 h-56 sm:w-72 sm:h-72">
                     <ResponsiveContainer>
                       <PieChart>
                         <Pie
-                          data={summaryData}
+                          data={hasData ? chartData : [{ name: "kosong", value: 1, color: "#E5E7EB" }]}
                           dataKey="value"
                           innerRadius={70}
                           outerRadius={110}
                           stroke="none"
+                          paddingAngle={hasData && chartData.length > 1 ? 2 : 0}
                         >
-                          {summaryData.map((entry, index) => (
+                          {(hasData ? chartData : [{ color: "#E5E7EB" }]).map((entry, index) => (
                             <Cell
                               key={index}
                               fill={entry.color}
@@ -224,44 +272,40 @@ export default function DetailPieModal({ open, onClose }: Props) {
                   </thead>
 
                   <tbody>
-                    {tableData.map((item, index) => (
-                      <tr
-                        key={index}
-                        className="bg-gray-50 hover:bg-gray-100 transition rounded-2xl"
-                      >
-                        <td className="p-4 rounded-l-2xl font-semibold text-gray-800">
-                          {item.matkul}
-                        </td>
-
-                        <td className="p-4">
-                          <ProgressBar
-                            value={item.ceramah}
-                            color="#9F4A4A"
-                          />
-                        </td>
-
-                        <td className="p-4">
-                          <ProgressBar
-                            value={item.tanya}
-                            color="#000000"
-                          />
-                        </td>
-
-                        <td className="p-4">
-                          <ProgressBar
-                            value={item.diskusi}
-                            color="#E6C7C7"
-                          />
-                        </td>
-
-                        <td className="p-4 rounded-r-2xl">
-                          <ProgressBar
-                            value={item.tidakAda}
-                            color="#6B7280"
-                          />
+                    {perMatkul.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-5 text-center text-gray-400 text-sm">
+                          Belum ada data aktivitas.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      perMatkul.map((item, index) => (
+                        <tr
+                          key={index}
+                          className="bg-gray-50 hover:bg-gray-100 transition rounded-2xl"
+                        >
+                          <td className="p-4 rounded-l-2xl font-semibold text-gray-800">
+                            {item.matkul}
+                          </td>
+
+                          <td className="p-4">
+                            <ProgressBar value={item.ceramah}  color="#9F4A4A" />
+                          </td>
+
+                          <td className="p-4">
+                            <ProgressBar value={item.tanya}    color="#000000" />
+                          </td>
+
+                          <td className="p-4">
+                            <ProgressBar value={item.diskusi}  color="#E6C7C7" />
+                          </td>
+
+                          <td className="p-4 rounded-r-2xl">
+                            <ProgressBar value={item.tidakAda} color="#6B7280" />
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
