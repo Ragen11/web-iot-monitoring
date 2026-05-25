@@ -27,92 +27,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     console.log("[Auth] AuthProvider initializing...");
 
-    // Safety timeout: paksa loading=false setelah 4 detik
-    // agar tidak stuck putih meski Supabase hang
+    // Safety timeout: paksa loading=false setelah 5 detik
     const safetyTimeout = setTimeout(() => {
       console.warn("[Auth] Safety timeout triggered — forcing loading=false");
       setLoading(false);
-    }, 4000);
+    }, 5000);
 
-    // Helper: jalankan promise dengan timeout
-    const withTimeout = <T,>(p: PromiseLike<T>, ms: number, label: string): Promise<T> =>
-      Promise.race([
-        p,
-        new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error(`Timeout: ${label}`)), ms)
-        ),
-      ]);
-
+    // Fetch profile dari email — DI LUAR auth callback agar tidak deadlock
     const fetchProfile = async (email: string) => {
       try {
-        const { data, error } = await withTimeout(
-          supabase
-            .from("profiles")
-            .select("username, role")
-            .eq("email", email)
-            .maybeSingle(),
-          3000,
-          "fetch profile"
-        );
-        if (error) console.error("[Auth] Profile error:", error);
-        return data;
-      } catch (err) {
-        console.error("[Auth] fetchProfile failed:", err);
-        return null;
-      }
-    };
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("username, role")
+          .eq("email", email)
+          .maybeSingle();
 
-    const getSession = async () => {
-      try {
-        console.log("[Auth] Getting session...");
-        const { data: { session } } = await withTimeout(
-          supabase.auth.getSession(),
-          3000,
-          "getSession"
-        );
-        console.log("[Auth] Session:", session ? "exists" : "none");
-
-        if (session?.user?.email) {
-          const profile = await fetchProfile(session.user.email);
-          if (profile) {
-            setUser(profile.username);
-            setRole(profile.role);
-            console.log("[Auth] Logged in as:", profile.username);
-          }
+        if (error) {
+          console.error("[Auth] Profile error:", error);
+        }
+        if (data) {
+          setUser(data.username);
+          setRole(data.role);
+          console.log("[Auth] Logged in as:", data.username);
         }
       } catch (err) {
-        console.error("[Auth] getSession failed:", err);
+        console.error("[Auth] fetchProfile failed:", err);
       } finally {
         clearTimeout(safetyTimeout);
         setLoading(false);
       }
     };
 
-    getSession();
+    // ⚠️ PENTING: callback HARUS sinkron / tidak await Supabase
+    // Async work dipindah ke setTimeout(0) untuk keluar dari auth lock
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[Auth] State change:", event);
 
-    // 🔥 LISTENER AUTO LOGIN / LOGOUT
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("[Auth] State change:", event);
-        try {
-          if (session?.user?.email) {
-            const profile = await fetchProfile(session.user.email);
-            if (profile) {
-              setUser(profile.username);
-              setRole(profile.role);
-            }
-          } else {
-            setUser(null);
-            setRole(null);
-          }
-        } catch (err) {
-          console.error("[Auth] State change failed:", err);
-        } finally {
-          clearTimeout(safetyTimeout);
-          setLoading(false);
-        }
+      if (session?.user?.email) {
+        const email = session.user.email;
+        // Defer fetch keluar dari callback agar tidak deadlock dengan internal lock Supabase
+        setTimeout(() => fetchProfile(email), 0);
+      } else {
+        setUser(null);
+        setRole(null);
+        clearTimeout(safetyTimeout);
+        setLoading(false);
       }
-    );
+    });
 
     return () => {
       clearTimeout(safetyTimeout);
