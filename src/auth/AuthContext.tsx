@@ -26,22 +26,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initialized.current = true;
 
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("username, role")
-          .eq("email", session.user.email)
-          .single();
+        if (session?.user) {
+          const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("username, role")
+            .eq("email", session.user.email)
+            .maybeSingle();
 
-        if (profile) {
-          setUser(profile.username);
-          setRole(profile.role);
+          if (error) {
+            console.error("Profile fetch error:", error);
+          }
+
+          if (profile) {
+            setUser(profile.username);
+            setRole(profile.role);
+          }
         }
+      } catch (err) {
+        console.error("Session check failed:", err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     getSession();
@@ -49,26 +57,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🔥 LISTENER AUTO LOGIN / LOGOUT
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        try {
+          if (session?.user) {
+            const { data: profile, error } = await supabase
+              .from("profiles")
+              .select("username, role")
+              .eq("email", session.user.email)
+              .maybeSingle();
 
-        if (session?.user) {
+            if (error) {
+              console.error("Profile fetch error:", error);
+            }
 
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("username, role")
-            .eq("email", session.user.email)
-            .single();
-
-          if (profile) {
-            setUser(profile.username);
-            setRole(profile.role);
+            if (profile) {
+              setUser(profile.username);
+              setRole(profile.role);
+            }
+          } else {
+            setUser(null);
+            setRole(null);
           }
-
-        } else {
-          setUser(null);
-          setRole(null);
+        } catch (err) {
+          console.error("Auth state change failed:", err);
+        } finally {
+          setLoading(false);
         }
-
-        setLoading(false);
       }
     );
 
