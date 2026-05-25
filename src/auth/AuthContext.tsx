@@ -25,29 +25,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initialized.current) return;
     initialized.current = true;
 
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
+    console.log("[Auth] AuthProvider initializing...");
 
-        if (session?.user) {
-          const { data: profile, error } = await supabase
+    // Safety timeout: paksa loading=false setelah 4 detik
+    // agar tidak stuck putih meski Supabase hang
+    const safetyTimeout = setTimeout(() => {
+      console.warn("[Auth] Safety timeout triggered — forcing loading=false");
+      setLoading(false);
+    }, 4000);
+
+    // Helper: jalankan promise dengan timeout
+    const withTimeout = <T,>(p: PromiseLike<T>, ms: number, label: string): Promise<T> =>
+      Promise.race([
+        p,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout: ${label}`)), ms)
+        ),
+      ]);
+
+    const fetchProfile = async (email: string) => {
+      try {
+        const { data, error } = await withTimeout(
+          supabase
             .from("profiles")
             .select("username, role")
-            .eq("email", session.user.email)
-            .maybeSingle();
+            .eq("email", email)
+            .maybeSingle(),
+          3000,
+          "fetch profile"
+        );
+        if (error) console.error("[Auth] Profile error:", error);
+        return data;
+      } catch (err) {
+        console.error("[Auth] fetchProfile failed:", err);
+        return null;
+      }
+    };
 
-          if (error) {
-            console.error("Profile fetch error:", error);
-          }
+    const getSession = async () => {
+      try {
+        console.log("[Auth] Getting session...");
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          3000,
+          "getSession"
+        );
+        console.log("[Auth] Session:", session ? "exists" : "none");
 
+        if (session?.user?.email) {
+          const profile = await fetchProfile(session.user.email);
           if (profile) {
             setUser(profile.username);
             setRole(profile.role);
+            console.log("[Auth] Logged in as:", profile.username);
           }
         }
       } catch (err) {
-        console.error("Session check failed:", err);
+        console.error("[Auth] getSession failed:", err);
       } finally {
+        clearTimeout(safetyTimeout);
         setLoading(false);
       }
     };
@@ -56,19 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 🔥 LISTENER AUTO LOGIN / LOGOUT
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        console.log("[Auth] State change:", event);
         try {
-          if (session?.user) {
-            const { data: profile, error } = await supabase
-              .from("profiles")
-              .select("username, role")
-              .eq("email", session.user.email)
-              .maybeSingle();
-
-            if (error) {
-              console.error("Profile fetch error:", error);
-            }
-
+          if (session?.user?.email) {
+            const profile = await fetchProfile(session.user.email);
             if (profile) {
               setUser(profile.username);
               setRole(profile.role);
@@ -78,14 +106,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setRole(null);
           }
         } catch (err) {
-          console.error("Auth state change failed:", err);
+          console.error("[Auth] State change failed:", err);
         } finally {
+          clearTimeout(safetyTimeout);
           setLoading(false);
         }
       }
     );
 
     return () => {
+      clearTimeout(safetyTimeout);
       listener.subscription.unsubscribe();
     };
 
