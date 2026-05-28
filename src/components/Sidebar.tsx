@@ -9,6 +9,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../auth/useAuth";
+import logoWhite from "../assets/klaktify-logo-notagline-white.png";
 
 const menu = [
   { name: "Dashboard",         icon: <FiHome />,      path: "/" },
@@ -54,13 +55,17 @@ export default function Sidebar({ isOpen, onClose }: Props) {
         `}
       >
         {/* Header dengan tombol close (mobile) */}
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-lg font-semibold tracking-wide w-full text-center">
-            MonitoringClass
-          </h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex-1 flex justify-center">
+            <img
+              src={logoWhite}
+              alt="Klaktify"
+              className="h-10 w-auto object-contain -ml-3"
+            />
+          </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-1 rounded-lg hover:bg-white/20 transition"
+            className="lg:hidden p-1 rounded-lg hover:bg-white/20 transition shrink-0"
             aria-label="Tutup menu"
           >
             <FiX size={20} />

@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 
 import illustration from "../assets/login.png";
+import klaktifyLogo from "../assets/klaktify-logo.png";
 import { useAuth } from "../auth/useAuth";
 
 export default function Login() {
@@ -68,13 +69,15 @@ export default function Login() {
         {/* LEFT */}
         <div className="flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-10 lg:py-0 order-2 lg:order-1">
 
-          <div className="mb-8 flex justify-center">
-            <span className="bg-[#E7C5C5] text-[#A44A4A] px-6 py-2 rounded-xl font-semibold text-sm">
-              MonitoringClass
-            </span>
+          <div className="mb-3 flex justify-center">
+            <img
+              src={klaktifyLogo}
+              alt="Klaktify"
+              className="h-24 sm:h-28 lg:h-32 w-auto object-contain"
+            />
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-800 mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center lg:text-left">
             Sign In
           </h1>
 

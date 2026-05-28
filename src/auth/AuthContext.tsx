@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 interface AuthContextType {
@@ -17,13 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<"admin" | "user" | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 CHECK SESSION SAAT APP START
-  const initialized = useRef(false);
-
   useEffect(() => {
-
-    if (initialized.current) return;
-    initialized.current = true;
 
     console.log("[Auth] AuthProvider initializing...");
 

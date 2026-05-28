@@ -2,7 +2,7 @@ import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { FiChevronRight, FiArrowLeft } from "react-icons/fi";
+import { FiChevronRight, FiArrowLeft, FiMaximize2 } from "react-icons/fi";
 import { supabase } from "../lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -29,6 +29,19 @@ export default function DetailMonitoring() {
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoWrapRef = useRef<HTMLDivElement>(null);
+
+  const handleFullscreen = () => {
+    const el = videoWrapRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      el.requestFullscreen().catch((err) =>
+        console.error("Fullscreen error:", err)
+      );
+    }
+  };
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -319,22 +332,30 @@ export default function DetailMonitoring() {
     }
   };
 
-  if (loading) {
-    return <p className="p-6">Loading...</p>;
-  }
-
-  if (!data) {
+  // Tampilan error hanya jika fetch selesai tapi data null
+  if (!loading && !data) {
     return (
-      <p className="p-6 text-red-500">
-        Data monitoring tidak ditemukan
-      </p>
+      <div className="p-6">
+        <button
+          onClick={() => navigate("/monitoring")}
+          className="text-sm text-gray-400 hover:text-[#A44A4A] flex items-center gap-1 mb-3"
+        >
+          <FiArrowLeft size={13} /> Hasil Monitoring
+        </button>
+        <p className="text-red-500">Data monitoring tidak ditemukan</p>
+      </div>
     );
   }
+
+  // Helper untuk skeleton block
+  const Sk = ({ className = "" }: { className?: string }) => (
+    <span className={`inline-block animate-pulse bg-gray-200 rounded ${className}`} />
+  );
 
   return (
     <div className="p-4 sm:p-6">
 
-      {/* BREADCRUMB */}
+      {/* BREADCRUMB — selalu tampil */}
       <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-3">
         <button
           onClick={() => navigate("/monitoring")}
@@ -345,109 +366,130 @@ export default function DetailMonitoring() {
         </button>
         <FiChevronRight size={12} />
         <span className="text-gray-600 font-medium truncate max-w-[200px]">
-          {data?.matkul || "Detail"}
+          {data?.matkul || data?.kode || (loading ? <Sk className="h-3 w-24 align-middle" /> : "Detail")}
         </span>
       </div>
 
-      {/* HEADER */}
+      {/* HEADER — selalu tampil */}
       <div className="flex items-center mb-6">
         <h1 className="text-xl font-semibold">Detail Monitoring</h1>
       </div>
 
       <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm space-y-6">
-        {/* DETAIL KELAS */}
+
+        {/* SECTION 1: DETAIL KELAS — pakai data dari state instan, skeleton hanya jika belum ada apa-apa */}
         <div>
-          <h2 className="font-semibold mb-4">
-            Detail Kelas
-          </h2>
+          <h2 className="font-semibold mb-4">Detail Kelas</h2>
 
-          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-y-2 text-sm">
-            <p>Mata Kuliah</p>
-            <p>
-              : {data.matkul} ({data.kode})
-            </p>
+          {data ? (
+            <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-y-2 text-sm">
+              <p>Mata Kuliah</p>
+              <p>: {data.matkul} {data.kode && `(${data.kode})`}</p>
 
-            <p>Hari</p>
-            <p>: {data.hari}</p>
+              <p>Hari</p>
+              <p>: {data.hari || "-"}</p>
 
-            <p>Tanggal</p>
-            <p>: {data.tanggal}</p>
+              <p>Tanggal</p>
+              <p>: {data.tanggal || "-"}</p>
 
-            <p>Jam</p>
-            <p>: {data.jamDisplay}</p>
+              <p>Jam</p>
+              <p>: {data.jamDisplay || data.jam || "-"}</p>
 
-            <p>Ruangan</p>
-            <p>: {data.ruangan}</p>
+              <p>Ruangan</p>
+              <p>: {data.ruangan || "-"}</p>
 
-            <p>Kelas</p>
-            <p>: {data.kelas}</p>
+              <p>Kelas</p>
+              <p>: {data.kelas || "-"}</p>
 
-            <p>Kode Dosen</p>
-            <p>: {data.kodeDosen}</p>
+              <p>Kode Dosen</p>
+              <p>: {data.kodeDosen || "-"}</p>
 
-            <p>Nama Dosen</p>
-            <p>: {data.namaDosen}</p>
+              <p>Nama Dosen</p>
+              <p>: {data.namaDosen || data.kodeDosen || "-"}</p>
 
-            <p>Kehadiran</p>
-            <p>: {data.kehadiran}</p>
-          </div>
-        </div>
-
-        {/* AKTIVITAS */}
-        <div>
-          <p className="mb-2 text-sm">
-            Aktivitas Kelas
-          </p>
-
-          <div className="bg-gray-100 p-4 sm:p-6 rounded-xl">
-            <div className="flex h-4 rounded-full overflow-hidden">
-              <div className="bg-purple-500 w-1/3"></div>
-
-              <div className="bg-red-400 w-1/6"></div>
-
-              <div className="bg-blue-400 w-1/2"></div>
-            </div>
-
-            <div className="flex justify-between text-xs mt-2 text-gray-400">
-              <span>08.00</span>
-              <span>09.00</span>
-              <span>09.15</span>
-              <span>10.00</span>
-            </div>
-
-            <div className="flex flex-wrap gap-3 sm:gap-4 text-xs mt-3">
-              <span className="text-purple-500">
-                • Ceramah
-              </span>
-
-              <span className="text-red-400">
-                • Diskusi
-              </span>
-
-              <span className="text-blue-400">
-                • Tanya Jawab
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* VIDEO */}
-        <div>
-          <p className="mb-2 text-sm">
-            Video Monitoring
-          </p>
-
-          {data.video_url ? (
-            <div className="w-full max-w-[400px] aspect-video">
-              <iframe
-                src={data.video_url}
-                className="w-full h-full rounded-lg"
-                allow="autoplay"
-                title="Video Monitoring"
-              />
+              <p>Kehadiran</p>
+              <p>: {loading && !data.kehadiran ? <Sk className="h-3 w-20 align-middle" /> : (data.kehadiran || "-")}</p>
             </div>
           ) : (
-            <div className="w-full max-w-[400px] aspect-video bg-gray-200 flex items-center justify-center rounded-lg text-sm text-gray-500">
+            <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-y-3 text-sm">
+              {Array.from({ length: 18 }).map((_, i) => (
+                <Sk key={i} className={i % 2 === 0 ? "h-3 w-20" : "h-3 w-40"} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 2: AKTIVITAS — skeleton saat loading */}
+        <div>
+          <p className="mb-2 text-sm">Aktivitas Kelas</p>
+
+          {loading ? (
+            <div className="bg-gray-50 p-4 sm:p-6 rounded-xl">
+              <div className="h-4 rounded-full bg-gray-200 animate-pulse" />
+              <div className="flex justify-between mt-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Sk key={i} className="h-2 w-8" />
+                ))}
+              </div>
+              <div className="flex gap-4 mt-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Sk key={i} className="h-3 w-16" />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-100 p-4 sm:p-6 rounded-xl">
+              <div className="flex h-4 rounded-full overflow-hidden">
+                <div className="bg-purple-500 w-1/3"></div>
+                <div className="bg-red-400 w-1/6"></div>
+                <div className="bg-blue-400 w-1/2"></div>
+              </div>
+
+              <div className="flex justify-between text-xs mt-2 text-gray-400">
+                <span>08.00</span>
+                <span>09.00</span>
+                <span>09.15</span>
+                <span>10.00</span>
+              </div>
+
+              <div className="flex flex-wrap gap-3 sm:gap-4 text-xs mt-3">
+                <span className="text-purple-500">• Ceramah</span>
+                <span className="text-red-400">• Diskusi</span>
+                <span className="text-blue-400">• Tanya Jawab</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 3: VIDEO — skeleton saat loading */}
+        <div>
+          <p className="mb-2 text-sm">Video Monitoring</p>
+
+          {loading ? (
+            <div className="w-full max-w-3xl aspect-video bg-gray-200 rounded-lg animate-pulse" />
+          ) : data?.video_url ? (
+            <div
+              ref={videoWrapRef}
+              className="w-full max-w-3xl aspect-video bg-black rounded-lg overflow-hidden relative group"
+            >
+              <iframe
+                src={data.video_url}
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay; fullscreen; encrypted-media"
+                allowFullScreen
+                title="Video Monitoring"
+              />
+              {/* Tombol fullscreen overlay (sudut kanan bawah) */}
+              <button
+                onClick={handleFullscreen}
+                className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/80 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition"
+                title="Fullscreen"
+              >
+                <FiMaximize2 size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="w-full max-w-3xl aspect-video bg-gray-200 flex items-center justify-center rounded-lg text-sm text-gray-500">
               Tidak ada video
             </div>
           )}
