@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useNavigate,
   useLocation,
@@ -32,6 +32,8 @@ export default function Login() {
 
   const location = useLocation();
 
+  const usernameRef = useRef<HTMLInputElement>(null);
+
   // 🔥 SESSION EXPIRED MESSAGE
   useEffect(() => {
 
@@ -41,7 +43,19 @@ export default function Login() {
 
   }, [location.state]);
 
-  const handleLogin = async () => {
+  // 🎯 AUTOFOCUS USERNAME SAAT MOUNT
+  useEffect(() => {
+    usernameRef.current?.focus();
+  }, []);
+
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (loading) return;
+    if (!username.trim() || !password.trim()) {
+      setError("Username dan password tidak boleh kosong");
+      return;
+    }
 
     setError("");
     setLoading(true);
@@ -51,13 +65,9 @@ export default function Login() {
     setLoading(false);
 
     if (success) {
-
       navigate("/");
-
     } else {
-
       setError("Username atau password salah");
-
     }
   };
 
@@ -88,67 +98,84 @@ export default function Login() {
             </div>
           )}
 
-          {/* USERNAME */}
-          <div className="mb-6">
+          {/* FORM */}
+          <form onSubmit={handleLogin}>
 
-            <label className="text-sm text-gray-500">
-              Username
-            </label>
+            {/* USERNAME */}
+            <div className="mb-6">
 
-            <div className="flex items-center border-b border-gray-300 mt-1">
+              <label htmlFor="username" className="text-sm text-gray-500">
+                Username
+              </label>
 
-              <FiUser className="text-gray-400 mr-2" />
+              <div className="flex items-center border-b border-gray-300 mt-1 focus-within:border-[#A44A4A] transition">
 
-              <input
-                type="text"
-                placeholder="Enter your Username"
-                className="w-full py-2 outline-none bg-transparent"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+                <FiUser className="text-gray-400 mr-2" />
 
-            </div>
+                <input
+                  ref={usernameRef}
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="Enter your Username"
+                  className="w-full py-2 outline-none bg-transparent"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
+                />
 
-          </div>
-
-          {/* PASSWORD */}
-          <div className="mb-6">
-
-            <label className="text-sm text-gray-500">
-              Password
-            </label>
-
-            <div className="flex items-center border-b border-gray-300 mt-1">
-
-              <FiLock className="text-gray-400 mr-2" />
-
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your Password"
-                className="w-full py-2 outline-none bg-transparent"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <FiEyeOff /> : <FiEye />}
-              </button>
+              </div>
 
             </div>
 
-          </div>
+            {/* PASSWORD */}
+            <div className="mb-6">
 
-          {/* LOGIN BUTTON */}
-          <button
-            onClick={handleLogin}
-            disabled={loading}
-            className="mt-4 bg-[#A44A4A] text-white py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50"
-          >
-            {loading ? "Loading..." : "Login"}
-          </button>
+              <label htmlFor="password" className="text-sm text-gray-500">
+                Password
+              </label>
+
+              <div className="flex items-center border-b border-gray-300 mt-1 focus-within:border-[#A44A4A] transition">
+
+                <FiLock className="text-gray-400 mr-2" />
+
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="Enter your Password"
+                  className="w-full py-2 outline-none bg-transparent"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-gray-400 hover:text-gray-600 transition p-1"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+
+              </div>
+
+            </div>
+
+            {/* LOGIN BUTTON */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-4 bg-[#A44A4A] text-white py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading && (
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {loading ? "Logging in..." : "Login"}
+            </button>
+
+          </form>
 
         </div>
 

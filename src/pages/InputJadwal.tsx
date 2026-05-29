@@ -113,7 +113,7 @@ export default function InputJadwal() {
       setProgress(0);
 
       const response = await axios.post(
-        `${API_URL}/uploud/upload-csv`,
+        `${API_URL}/upload/csv`,
         formData,
         {
           onUploadProgress: (progressEvent) => {

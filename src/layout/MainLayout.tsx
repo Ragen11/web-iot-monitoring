@@ -1,7 +1,8 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { Outlet, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import PageTransition from "../components/PageTransition";
 
 import useIdleLogout from "../hooks/useIdleLogout";
 import SessionTimeoutModal from "../components/SessionTimeoutModal";
@@ -32,7 +33,7 @@ export default function MainLayout() {
 
           <Navbar onMenuToggle={() => setSidebarOpen(true)} />
 
-          <Outlet />
+          <PageTransition />
 
         </div>
 
