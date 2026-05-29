@@ -63,7 +63,7 @@ export default function Setting() {
         <div className="space-y-3 text-sm">
           <div className="flex justify-between py-2 border-b border-gray-100">
             <span className="text-gray-500">Nama Aplikasi</span>
-            <span className="font-medium text-gray-700">Klaktify</span>
+            <span className="font-medium text-gray-700">Clactify</span>
           </div>
           <div className="flex justify-between py-2 border-b border-gray-100">
             <span className="text-gray-500">Versi</span>
@@ -79,7 +79,7 @@ export default function Setting() {
           </div>
           <div className="pt-1">
             <p className="text-gray-400 text-xs leading-relaxed">
-              Klaktify adalah sistem monitoring perkuliahan berbasis web yang membantu
+              Clactify adalah sistem monitoring perkuliahan berbasis web yang membantu
               institusi pendidikan dalam memantau sesi kelas, menganalisis aktivitas pembelajaran,
               dan menghasilkan laporan evaluasi secara otomatis.
             </p>

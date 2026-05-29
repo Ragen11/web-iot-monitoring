@@ -12,7 +12,7 @@ import {
 } from "react-icons/fi";
 
 import illustration from "../assets/login.png";
-import klaktifyLogo from "../assets/klaktify-logo.png";
+import klaktifyLogo from "../assets/clactify-logo.png";
 import { useAuth } from "../auth/useAuth";
 
 export default function Login() {

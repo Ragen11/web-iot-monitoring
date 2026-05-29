@@ -9,7 +9,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../auth/useAuth";
-import logoWhite from "../assets/klaktify-logo-notagline-white.png";
+import logoWhite from "../assets/clactify-logo-notagline-white.png";
 
 const menu = [
   { name: "Dashboard",         icon: <FiHome />,      path: "/" },
