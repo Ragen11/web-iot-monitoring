@@ -100,8 +100,9 @@ export default function InputJadwal() {
 
     const file = files[0];
 
-    if (!file.name.endsWith(".csv")) {
-      toast.error("File harus format CSV!");
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
+      toast.error("File harus format XLSX!");
       return;
     }
 
@@ -113,7 +114,7 @@ export default function InputJadwal() {
       setProgress(0);
 
       const response = await axios.post(
-        `${API_URL}/upload/csv`,
+        `${API_URL}/upload/xlsx`,
         formData,
         {
           onUploadProgress: (progressEvent) => {
@@ -192,7 +193,7 @@ export default function InputJadwal() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".xlsx,.xls"
             className="hidden"
             onChange={handleUpload}
           />
@@ -260,7 +261,7 @@ export default function InputJadwal() {
         )}
 
         <p className="text-xs text-gray-400 mt-3">
-          Only support .csv files
+          Only support .xlsx files
         </p>
 
         <button
