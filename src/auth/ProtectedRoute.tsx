@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children }: { children: JSX.Element }) 
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F6FA]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#A44A4A] border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-gray-500">Memuat sesi...</p>
         </div>
       </div>

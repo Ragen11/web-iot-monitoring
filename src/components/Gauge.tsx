@@ -9,7 +9,7 @@ type Props = {
 
 type OptionItem = { kode: string; nama: string };
 
-const RANGE_MAP: Record<Range, number> = { "1H": 1, "1M": 30, "1B": 90 };
+const RANGE_MAP: Record<Range, number> = { "1D": 1, "1W": 7, "1M": 30, "6M": 180 };
 
 export default function Gauge({
   onDetailClick,
@@ -20,7 +20,7 @@ export default function Gauge({
   const [loading, setLoading]         = useState(true);
 
   // FILTERS
-  const [range,       setRange]       = useState<Range>("1M");
+  const [range,       setRange]       = useState<Range>("6M");
   const [filterDosen, setFilterDosen] = useState<string>("");
   const [filterKelas, setFilterKelas] = useState<string>("");
 
@@ -188,7 +188,7 @@ export default function Gauge({
         <button
           onClick={onDetailClick}
           className="
-            text-[#9F4A4A]
+            text-primary-deep
             text-sm
             font-semibold
             cursor-pointer

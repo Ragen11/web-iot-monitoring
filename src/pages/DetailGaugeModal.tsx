@@ -60,7 +60,10 @@ type DashboardResp = {
   per_matkul: AttendanceItem[];
 };
 
-const RANGE_MAP: Record<Range, number> = { "1H": 1, "1M": 30, "1B": 90 };
+const RANGE_MAP: Record<Range, number> = { "1D": 1, "1W": 7, "1M": 30, "6M": 180 };
+
+// untuk LineChart "Tren Kehadiran" — berapa titik data yg ditampilkan
+const TREND_DAYS_MAP: Record<Range, number> = { "1D": 1, "1W": 7, "1M": 30, "6M": 30 };
 
 function GaugeChart({ value }: { value: number }) {
   // arcRadius HARUS sama dengan radius pada SVG path "A 110 110 ..."
@@ -173,7 +176,7 @@ export default function DetailGaugeModal({
   const [loading,    setLoading]    = useState(false);
 
   // ── FILTERS ──
-  const [range,        setRange]        = useState<Range>("1M");
+  const [range,        setRange]        = useState<Range>("6M");
   const [filterDosen,  setFilterDosen]  = useState<string>("");
   const [filterKelas,  setFilterKelas]  = useState<string>("");
   const [dosenOpts,    setDosenOpts]    = useState<OptionItem[]>([]);
@@ -210,7 +213,7 @@ export default function DetailGaugeModal({
 
         const params: any = {
           range_days: RANGE_MAP[range] ?? 30,
-          trend_days: range === "1H" ? 1 : range === "1M" ? 7 : 30,
+          trend_days: TREND_DAYS_MAP[range] ?? 30,
         };
         if (filterDosen) params.dosen = filterDosen;
         if (filterKelas) params.kelas = filterKelas;

@@ -338,7 +338,7 @@ export default function DetailMonitoring() {
       <div className="p-6">
         <button
           onClick={() => navigate("/monitoring")}
-          className="text-sm text-gray-400 hover:text-[#A44A4A] flex items-center gap-1 mb-3"
+          className="text-sm text-gray-400 hover:text-primary flex items-center gap-1 mb-3"
         >
           <FiArrowLeft size={13} /> Hasil Monitoring
         </button>
@@ -359,7 +359,7 @@ export default function DetailMonitoring() {
       <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-3">
         <button
           onClick={() => navigate("/monitoring")}
-          className="hover:text-[#A44A4A] transition flex items-center gap-1"
+          className="hover:text-primary transition flex items-center gap-1"
         >
           <FiArrowLeft size={13} />
           Hasil Monitoring
@@ -508,7 +508,7 @@ export default function DetailMonitoring() {
               className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm transition w-full sm:w-auto justify-center ${
                 loadingReport
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#A44A4A] hover:bg-[#8f3e3e]"
+                  : "bg-primary hover:bg-primary-dark"
               }`}
             >
               {loadingReport && (

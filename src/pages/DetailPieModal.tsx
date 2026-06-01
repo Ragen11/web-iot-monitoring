@@ -38,7 +38,7 @@ type MatkulItem = {
 
 type OptionItem = { kode: string; nama: string };
 
-const RANGE_MAP: Record<Range, number> = { "1H": 1, "1M": 30, "1B": 90 };
+const RANGE_MAP: Record<Range, number> = { "1D": 1, "1W": 7, "1M": 30, "6M": 180 };
 
 function ProgressBar({ value, color }: { value: number; color: string }) {
   return (
@@ -67,7 +67,7 @@ export default function DetailPieModal({ open, onClose }: Props) {
   const [loading, setLoading]       = useState(false);
 
   // FILTERS
-  const [range,       setRange]       = useState<Range>("1M");
+  const [range,       setRange]       = useState<Range>("6M");
   const [filterDosen, setFilterDosen] = useState<string>("");
   const [filterKelas, setFilterKelas] = useState<string>("");
 

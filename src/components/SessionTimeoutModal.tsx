@@ -25,13 +25,13 @@ export default function SessionTimeoutModal({
           Harap login kembali.
         </p>
 
-        <div className="text-center text-3xl font-bold text-[#A44A4A] mb-6">
+        <div className="text-center text-3xl font-bold text-primary mb-6">
           {countdown}
         </div>
 
         <button
           onClick={onStay}
-          className="w-full bg-[#A44A4A] text-white py-3 rounded-xl hover:opacity-90"
+          className="w-full bg-primary text-white py-3 rounded-xl hover:opacity-90"
         >
           Tetap Login
         </button>

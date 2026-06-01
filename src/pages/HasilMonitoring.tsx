@@ -235,7 +235,7 @@ export default function HasilMonitoring() {
                     onClick={() => setPage(p as number)}
                     className={`px-3 py-1.5 text-sm rounded-lg border transition ${
                       page === p
-                        ? "bg-[#A44A4A] text-white border-[#A44A4A]"
+                        ? "bg-primary text-white border-primary"
                         : "border-gray-200 text-gray-600 hover:bg-gray-50"
                     }`}
                   >

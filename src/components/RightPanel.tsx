@@ -47,7 +47,7 @@ export default function RightPanel() {
             matkul="Proposal Tugas Akhir"
             jam="08:00 - 10:00"
             ruangan="Lab 203"
-            accent="text-[#A44A4A]"
+            accent="text-primary"
             accentBg="bg-[#f0fdf4]"
           />
         </div>
@@ -63,7 +63,7 @@ export default function RightPanel() {
             matkul="Proposal Tugas Akhir"
             jam="13:00 - 15:00"
             ruangan="Ruang C401"
-            accent="text-[#A44A4A]"
+            accent="text-primary"
             accentBg="bg-[#fff7f0]"
           />
         </div>

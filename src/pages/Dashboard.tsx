@@ -63,7 +63,7 @@ export default function Dashboard() {
               value={fmt(totalKelas)}
               icon={<FiLayers />}
               iconBg="bg-[#fdf0f0]"
-              iconColor="text-[#A44A4A]"
+              iconColor="text-primary"
             />
             <Card
               title="Total Matkul"

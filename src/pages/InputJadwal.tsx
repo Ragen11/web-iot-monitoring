@@ -250,7 +250,7 @@ export default function InputJadwal() {
           <div className="mt-3">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-[#A44A4A] h-2 rounded-full transition-all"
+                className="bg-primary h-2 rounded-full transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -270,7 +270,7 @@ export default function InputJadwal() {
           className={`mt-4 px-6 py-2 rounded-lg text-white transition ${
             !fileReady || loading
               ? "bg-gray-300 cursor-not-allowed"
-              : "bg-[#A44A4A] hover:bg-[#8f3e3e]"
+              : "bg-primary hover:bg-primary-dark"
           }`}
         >
           {loading ? "Uploading..." : "Submit"}
@@ -350,7 +350,7 @@ export default function InputJadwal() {
               key={day}
               className="bg-white rounded-xl shadow"
             >
-              <div className="bg-[#A44A4A] text-white text-center py-2 rounded-t-xl">
+              <div className="bg-primary text-white text-center py-2 rounded-t-xl">
                 {day}
               </div>
 
@@ -400,6 +400,7 @@ export default function InputJadwal() {
                       key={index}
                       className="border rounded-lg p-3 text-xs"
                     >
+                      {item.ruangan} -{" "}
                       {item.kode_mata_kuliah} -{" "}
                       {item.mata_kuliah} -{" "}
                       {item.dosen_utama}

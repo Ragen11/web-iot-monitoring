@@ -15,6 +15,10 @@ import illustration from "../assets/login.png";
 import klaktifyLogo from "../assets/clactify-logo.png";
 import { useAuth } from "../auth/useAuth";
 
+// Konfigurasi rate limit
+const MAX_ATTEMPTS   = 5;
+const LOCK_DURATION  = 30; // detik
+
 export default function Login() {
 
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +29,11 @@ export default function Login() {
   const [error, setError] = useState("");
 
   const [loading, setLoading] = useState(false);
+
+  // Rate limit state
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil]       = useState<number | null>(null);
+  const [secondsLeft, setSecondsLeft]       = useState(0);
 
   const { login } = useAuth();
 
@@ -48,10 +57,32 @@ export default function Login() {
     usernameRef.current?.focus();
   }, []);
 
+  // ⏱️ COUNTDOWN saat locked
+  useEffect(() => {
+    if (!lockedUntil) return;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining === 0) {
+        setLockedUntil(null);
+        setFailedAttempts(0);
+        setError("");
+      }
+    };
+
+    tick(); // langsung jalan
+    const interval = setInterval(tick, 250);
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
+
+  const isLocked = !!lockedUntil && lockedUntil > Date.now();
+
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (loading) return;
+    if (loading || isLocked) return;
+
     if (!username.trim() || !password.trim()) {
       setError("Username dan password tidak boleh kosong");
       return;
@@ -65,9 +96,27 @@ export default function Login() {
     setLoading(false);
 
     if (success) {
+      // Reset rate limit saat sukses
+      setFailedAttempts(0);
+      setLockedUntil(null);
       navigate("/");
     } else {
-      setError("Username atau password salah");
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        // Trigger lockout
+        setLockedUntil(Date.now() + LOCK_DURATION * 1000);
+        setPassword(""); // bersihkan password biar tidak terlihat
+        setError(
+          `Terlalu banyak percobaan gagal. Coba lagi dalam ${LOCK_DURATION} detik.`
+        );
+      } else {
+        const remaining = MAX_ATTEMPTS - newAttempts;
+        setError(
+          `Username atau password salah. Sisa percobaan: ${remaining}`
+        );
+      }
     }
   };
 
@@ -94,7 +143,14 @@ export default function Login() {
           {/* ERROR */}
           {error && (
             <div className="mb-4 bg-red-100 border border-red-300 text-red-600 px-4 py-3 rounded-xl text-sm">
-              {error}
+              {isLocked ? (
+                <span>
+                  Terlalu banyak percobaan gagal. Coba lagi dalam{" "}
+                  <strong>{secondsLeft}</strong> detik.
+                </span>
+              ) : (
+                error
+              )}
             </div>
           )}
 
@@ -108,7 +164,7 @@ export default function Login() {
                 Username
               </label>
 
-              <div className="flex items-center border-b border-gray-300 mt-1 focus-within:border-[#A44A4A] transition">
+              <div className="flex items-center border-b border-gray-300 mt-1 focus-within:border-primary transition">
 
                 <FiUser className="text-gray-400 mr-2" />
 
@@ -118,10 +174,10 @@ export default function Login() {
                   type="text"
                   autoComplete="username"
                   placeholder="Enter your Username"
-                  className="w-full py-2 outline-none bg-transparent"
+                  className="w-full py-2 outline-none bg-transparent disabled:opacity-50"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  disabled={loading}
+                  disabled={loading || isLocked}
                 />
 
               </div>
@@ -135,7 +191,7 @@ export default function Login() {
                 Password
               </label>
 
-              <div className="flex items-center border-b border-gray-300 mt-1 focus-within:border-[#A44A4A] transition">
+              <div className="flex items-center border-b border-gray-300 mt-1 focus-within:border-primary transition">
 
                 <FiLock className="text-gray-400 mr-2" />
 
@@ -144,10 +200,10 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="Enter your Password"
-                  className="w-full py-2 outline-none bg-transparent"
+                  className="w-full py-2 outline-none bg-transparent disabled:opacity-50"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
+                  disabled={loading || isLocked}
                 />
 
                 <button
@@ -166,13 +222,17 @@ export default function Login() {
             {/* LOGIN BUTTON */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full mt-4 bg-[#A44A4A] text-white py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={loading || isLocked}
+              className="w-full mt-4 bg-primary text-white py-3 rounded-full shadow-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && (
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               )}
-              {loading ? "Logging in..." : "Login"}
+              {isLocked
+                ? `Tunggu ${secondsLeft}s`
+                : loading
+                ? "Logging in..."
+                : "Login"}
             </button>
 
           </form>
@@ -180,7 +240,7 @@ export default function Login() {
         </div>
 
         {/* RIGHT */}
-        <div className="bg-[#A44A4A] flex flex-col justify-center items-center text-white py-10 lg:py-0 lg:rounded-l-[120px] order-1 lg:order-2">
+        <div className="bg-primary flex flex-col justify-center items-center text-white py-10 lg:py-0 lg:rounded-l-[120px] order-1 lg:order-2">
 
           <img
             src={illustration}

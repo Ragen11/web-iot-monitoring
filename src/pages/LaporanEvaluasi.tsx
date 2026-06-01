@@ -210,7 +210,7 @@ export default function LaporanEvaluasi() {
             ${
               !isComplete || loading
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#A44A4A] hover:opacity-90"
+                : "bg-primary hover:opacity-90"
             }
           `}
         >

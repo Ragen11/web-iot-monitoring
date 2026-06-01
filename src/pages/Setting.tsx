@@ -26,12 +26,12 @@ export default function Setting() {
       {/* PROFIL */}
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
-          <FiUser className="text-[#A44A4A]" size={18} />
+          <FiUser className="text-primary" size={18} />
           <h2 className="font-semibold text-gray-700">Profil</h2>
         </div>
 
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#A44A4A]/30 flex-shrink-0">
+          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 flex-shrink-0">
             <img
               src="https://i.pravatar.cc/100"
               alt="avatar"
@@ -43,7 +43,7 @@ export default function Setting() {
             <span
               className={`text-xs px-2.5 py-1 rounded-full font-medium mt-1 inline-block ${
                 role === "admin"
-                  ? "bg-red-100 text-[#A44A4A]"
+                  ? "bg-red-100 text-primary"
                   : "bg-blue-100 text-blue-600"
               }`}
             >
@@ -56,7 +56,7 @@ export default function Setting() {
       {/* INFO APLIKASI */}
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
-          <FiInfo className="text-[#A44A4A]" size={18} />
+          <FiInfo className="text-primary" size={18} />
           <h2 className="font-semibold text-gray-700">Info Aplikasi</h2>
         </div>
 
@@ -90,7 +90,7 @@ export default function Setting() {
       {/* KEAMANAN */}
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-5">
-          <FiShield className="text-[#A44A4A]" size={18} />
+          <FiShield className="text-primary" size={18} />
           <h2 className="font-semibold text-gray-700">Keamanan</h2>
         </div>
 

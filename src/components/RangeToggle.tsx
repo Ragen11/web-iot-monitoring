@@ -1,4 +1,4 @@
-export type Range = "1H" | "1M" | "1B";
+export type Range = "1D" | "1W" | "1M" | "6M";
 
 type Props = {
   value: Range;
@@ -6,7 +6,7 @@ type Props = {
   size?: "sm" | "md";
 };
 
-const RANGES: Range[] = ["1H", "1M", "1B"];
+const RANGES: Range[] = ["1D", "1W", "1M", "6M"];
 
 export default function RangeToggle({ value, onChange, size = "md" }: Props) {
   const pad = size === "sm" ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm";

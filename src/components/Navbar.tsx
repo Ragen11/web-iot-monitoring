@@ -111,7 +111,7 @@ export default function Navbar({ onMenuToggle }: Props) {
                 Hello {user}
               </span>
 
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-gray-200 hover:border-[#A44A4A] transition shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-gray-200 hover:border-primary transition shrink-0">
 
                 <img
                   src="https://i.pravatar.cc/100"

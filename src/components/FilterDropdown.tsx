@@ -65,7 +65,7 @@ export default function FilterDropdown({
                 setOpen(false);
               }}
               className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-lg text-sm ${
-                value === "" ? "text-[#A44A4A] font-medium" : "text-gray-500"
+                value === "" ? "text-primary font-medium" : "text-gray-500"
               }`}
             >
               {label}
@@ -83,7 +83,7 @@ export default function FilterDropdown({
                   setOpen(false);
                 }}
                 className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-lg text-sm truncate ${
-                  value === opt.value ? "text-[#A44A4A] font-medium" : "text-gray-700"
+                  value === opt.value ? "text-primary font-medium" : "text-gray-700"
                 }`}
               >
                 {opt.label}

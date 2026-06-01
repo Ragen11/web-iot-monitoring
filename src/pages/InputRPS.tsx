@@ -257,7 +257,7 @@ export default function InputRPS() {
           <div className="mt-3">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-[#A44A4A] h-2 rounded-full transition-all"
+                className="bg-primary h-2 rounded-full transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -280,7 +280,7 @@ export default function InputRPS() {
           className={`mt-4 px-6 py-2 rounded-lg text-white transition ${
             !fileReady || loading
               ? "bg-gray-300 cursor-not-allowed"
-              : "bg-[#A44A4A] hover:bg-[#8f3e3e]"
+              : "bg-primary hover:bg-primary-dark"
           }`}
         >
           {loading ? "Uploading..." : "Submit"}
@@ -290,7 +290,7 @@ export default function InputRPS() {
       {/* LIST DATA RPS */}
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
-          <FiBookOpen className="text-[#A44A4A]" size={18} />
+          <FiBookOpen className="text-primary" size={18} />
           <h2 className="font-semibold text-gray-700">
             Data RPS yang Telah Diinput
           </h2>
@@ -310,11 +310,11 @@ export default function InputRPS() {
                 className="border border-gray-100 rounded-xl p-4 bg-gray-50 flex gap-4"
               >
                 {/* BADGE */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-[#A44A4A]/10 flex flex-col items-center justify-center">
-                  <span className="text-[10px] text-[#A44A4A] font-medium leading-none">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center">
+                  <span className="text-[10px] text-primary font-medium leading-none">
                     Prt.
                   </span>
-                  <span className="text-lg font-bold text-[#A44A4A] leading-none">
+                  <span className="text-lg font-bold text-primary leading-none">
                     {item.pertemuan_ke}
                   </span>
                 </div>

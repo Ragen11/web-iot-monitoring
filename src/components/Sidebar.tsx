@@ -26,7 +26,7 @@ type Props = {
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
     isActive
-      ? "bg-white text-[#A44A4A] shadow-sm"
+      ? "bg-white text-primary shadow-sm"
       : "text-white/80 hover:bg-white/20 hover:text-white"
   }`;
 
@@ -48,7 +48,7 @@ export default function Sidebar({ isOpen, onClose }: Props) {
       <div
         className={`
           fixed top-4 bottom-4 left-4 z-50
-          w-64 bg-[#A44A4A] text-white flex flex-col p-6 rounded-3xl shadow-lg
+          w-64 bg-primary text-white flex flex-col p-6 rounded-3xl shadow-lg
           transition-transform duration-300 ease-out
           ${isOpen ? "translate-x-0" : "-translate-x-[110%]"}
           lg:translate-x-0

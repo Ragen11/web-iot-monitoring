@@ -12,6 +12,7 @@ import Setting from "./pages/Setting";
 
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
+import AdminRoute from "./auth/AdminRoute";
 
 function App() {
   return (
@@ -35,8 +36,22 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="monitoring" element={<HasilMonitoring />} />
             <Route path="LaporanEvaluasi" element={<LaporanEvaluasi />} />
-            <Route path="input-jadwal" element={<InputJadwal />} />
-            <Route path="input-rps" element={<InputRPS />} />
+            <Route
+              path="input-jadwal"
+              element={
+                <AdminRoute>
+                  <InputJadwal />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="input-rps"
+              element={
+                <AdminRoute>
+                  <InputRPS />
+                </AdminRoute>
+              }
+            />
             <Route path="setting" element={<Setting />} />
             <Route path="monitoring/:id" element={<DetailMonitoring />} />
           </Route>
