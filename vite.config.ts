@@ -2,17 +2,19 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
+export default defineConfig(({ mode }) => {
+  const isProd = mode === 'production'
 
-  build: {
-    // Saat production build: strip semua console.* (log, debug, info, warn, error)
-    // + debugger statement. Saat dev: biarkan agar bisa debug.
+  return {
+    plugins: [react()],
+    
     esbuild: {
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
-    },
+      drop: isProd ? ['console', 'debugger'] : [],
+    } as any,
 
-    // Jangan generate .map files di production agar source code tidak ke-expose
-    sourcemap: mode !== 'production',
-  },
-}))
+    build: {
+      // Jangan generate .map files di production agar source code tidak ke-expose
+      sourcemap: !isProd,
+    },
+  }
+})
