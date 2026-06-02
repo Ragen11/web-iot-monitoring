@@ -15,11 +15,12 @@ export default function InputJadwal() {
 
   const [jadwal, setJadwal] = useState<any[]>([]);
 
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [selectedDosen, setSelectedDosen] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter]     = useState<string | null>(null);
+  const [selectedDosen, setSelectedDosen]   = useState<string[]>([]);
   const [selectedMatkul, setSelectedMatkul] = useState<string[]>([]);
-  const [selectedKelas, setSelectedKelas] = useState<string[]>([]);
-  const [selectedWaktu, setSelectedWaktu] = useState<string[]>([]);
+  const [selectedKelas, setSelectedKelas]   = useState<string[]>([]);
+  const [selectedWaktu, setSelectedWaktu]   = useState<string[]>([]);
+  const [selectedRuangan, setSelectedRuangan] = useState<string[]>([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -51,17 +52,30 @@ export default function InputJadwal() {
     setActiveFilter(activeFilter === name ? null : name);
   };
 
-  const listDosen = [...new Set(jadwal.map((j) => j.dosen_utama))];
-  const listMatkul = [...new Set(jadwal.map((j) => j.mata_kuliah))];
-  const listKelas = [...new Set(jadwal.map((j) => j.kelas))];
-  const listWaktu = [
+  const listDosen   = [...new Set(jadwal.map((j) => j.dosen_utama))];
+  const listMatkul  = [...new Set(jadwal.map((j) => j.mata_kuliah))];
+  const listKelas   = [...new Set(jadwal.map((j) => j.kelas))];
+  // Urutan custom: TULT dulu, lalu KU3, lalu lainnya (alfabetis)
+  const RUANGAN_PRIORITY: Record<string, number> = {
+    TULT: 1,
+    KU3:  2,
+  };
+  const listRuangan = [...new Set(jadwal.map((j) => j.ruangan))].sort((a, b) => {
+    const prefixA = (a || "").split(" ")[0];
+    const prefixB = (b || "").split(" ")[0];
+    const priA = RUANGAN_PRIORITY[prefixA] ?? 99;
+    const priB = RUANGAN_PRIORITY[prefixB] ?? 99;
+    if (priA !== priB) return priA - priB;
+    return (a || "").localeCompare(b || "");
+  });
+  const listWaktu   = [
     ...new Set(
       jadwal.map(
         (j) =>
           `${j.jam_mulai.slice(0, 5)} - ${j.jam_selesai.slice(0, 5)}`
       )
     ),
-  ];
+  ].sort();   // urut dari paling pagi ke paling malam (string sort jam HH:MM)
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -333,6 +347,17 @@ export default function InputJadwal() {
               setSelected={setSelectedKelas}
             />
 
+            {/* RUANGAN */}
+            <FilterDropdown
+              title="Ruangan"
+              name="ruangan"
+              activeFilter={activeFilter}
+              toggleFilter={toggleFilter}
+              list={listRuangan}
+              selected={selectedRuangan}
+              setSelected={setSelectedRuangan}
+            />
+
           </div>
         </div>
 
@@ -390,6 +415,11 @@ export default function InputJadwal() {
                           )}`
                         )
                   )
+                  .filter((item) =>
+                    selectedRuangan.length === 0
+                      ? true
+                      : selectedRuangan.includes(item.ruangan)
+                  )
                   .sort((a, b) =>
                     a.jam_mulai.localeCompare(
                       b.jam_mulai
@@ -436,6 +466,12 @@ function FilterDropdown({
   setSelected,
 }: any) {
 
+  const isOpen = activeFilter === name;
+
+  // Label tombol: kalau ada yang dipilih → tampilkan jumlah, kalau tidak → tampilkan title
+  const buttonLabel =
+    selected.length > 0 ? `${title} (${selected.length})` : title;
+
   return (
     <div className="relative">
 
@@ -444,44 +480,56 @@ function FilterDropdown({
           e.stopPropagation();
           toggleFilter(name);
         }}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm text-sm text-gray-700 hover:shadow transition"
+        className={`w-40 px-4 py-2 flex items-center justify-between gap-2 bg-white border rounded-xl text-sm transition ${
+          selected.length > 0
+            ? "border-primary/40 text-primary font-medium"
+            : "border-gray-200 text-gray-700 hover:bg-gray-50"
+        }`}
       >
-        {title} <FiChevronDown />
+        <span className="truncate">{buttonLabel}</span>
+        <FiChevronDown
+          className={`shrink-0 transition-transform ${
+            isOpen ? "rotate-180" : ""
+          } ${selected.length > 0 ? "text-primary" : "text-gray-400"}`}
+          size={16}
+        />
       </button>
 
-      {activeFilter === name && (
+      {isOpen && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-xl p-3 z-20"
+          className="absolute top-[calc(100%+4px)] left-0 w-48 bg-white border border-gray-100 shadow-lg rounded-xl p-1.5 z-30 max-h-64 overflow-y-auto"
         >
 
-          {list.map((item: string, i: number) => (
-            <label
-              key={i}
-              className="flex items-center gap-2 text-sm"
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(item)}
-                onChange={() => {
-
-                  if (selected.includes(item)) {
-                    setSelected(
-                      selected.filter(
-                        (d: string) => d !== item
-                      )
-                    );
-                  } else {
-                    setSelected([...selected, item]);
-                  }
-
-                }}
-              />
-
-              {item}
-
-            </label>
-          ))}
+          {list.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-gray-400">Tidak ada data</p>
+          ) : (
+            list.map((item: string, i: number) => {
+              const checked = selected.includes(item);
+              return (
+                <label
+                  key={i}
+                  className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 rounded-lg text-sm text-gray-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => {
+                      if (checked) {
+                        setSelected(
+                          selected.filter((d: string) => d !== item)
+                        );
+                      } else {
+                        setSelected([...selected, item]);
+                      }
+                    }}
+                    className="accent-primary"
+                  />
+                  <span className="truncate">{item}</span>
+                </label>
+              );
+            })
+          )}
 
         </div>
       )}

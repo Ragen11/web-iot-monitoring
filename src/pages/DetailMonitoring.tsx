@@ -525,8 +525,8 @@ export default function DetailMonitoring() {
           <div className="bg-white rounded-xl shadow overflow-hidden">
             {pdfUrl ? (
               <iframe
-                src={pdfUrl}
-                className="w-full h-[400px] sm:h-[500px] lg:h-[600px]"
+                src={`${pdfUrl}#zoom=100`}
+                className="w-full h-[700px] sm:h-[900px] lg:h-[1100px]"
                 title="PDF Laporan"
               />
             ) : (

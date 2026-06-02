@@ -7,13 +7,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    
-    esbuild: {
-      drop: isProd ? ['console', 'debugger'] : [],
-    } as any,
 
     build: {
-      // Jangan generate .map files di production agar source code tidak ke-expose
+      // Pakai terser di production untuk drop console.* + debugger
+      // Dev tetap pakai esbuild (cepat, tidak ada overhead)
+      minify: isProd ? 'terser' : 'esbuild',
+      terserOptions: {
+        compress: {
+          drop_console: isProd,
+          drop_debugger: isProd,
+        },
+      },
+      // Jangan generate .map files di production
       sourcemap: !isProd,
     },
   }

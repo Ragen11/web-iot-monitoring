@@ -30,15 +30,28 @@ export default function Gauge({
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // FETCH OPTIONS sekali
+  // CASCADING FILTER — dosen options menyesuaikan dengan kelas yang dipilih
+  // (kirim hanya kelas, agar daftar dosen tetap luas dan tidak self-restrict)
   useEffect(() => {
-    axios.get(`${API_URL}/kehadiran/options`)
-      .then(res => {
-        setDosenOpts(res.data?.dosen ?? []);
-        setKelasOpts(res.data?.kelas ?? []);
-      })
-      .catch(err => console.error("❌ gauge options error:", err));
-  }, [API_URL]);
+    const params: any = {};
+    if (filterKelas) params.kelas = filterKelas;
+
+    axios
+      .get(`${API_URL}/kehadiran/options`, { params })
+      .then(res => setDosenOpts(res.data?.dosen ?? []))
+      .catch(err => console.error("❌ gauge dosen options error:", err));
+  }, [API_URL, filterKelas]);
+
+  // CASCADING FILTER — kelas options menyesuaikan dengan dosen yang dipilih
+  useEffect(() => {
+    const params: any = {};
+    if (filterDosen) params.dosen = filterDosen;
+
+    axios
+      .get(`${API_URL}/kehadiran/options`, { params })
+      .then(res => setKelasOpts(res.data?.kelas ?? []))
+      .catch(err => console.error("❌ gauge kelas options error:", err));
+  }, [API_URL, filterDosen]);
 
   // FETCH SUMMARY tiap filter berubah
   useEffect(() => {

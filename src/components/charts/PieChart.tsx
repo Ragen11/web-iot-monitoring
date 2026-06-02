@@ -48,15 +48,28 @@ export default function ChartPie({
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // FETCH OPTIONS sekali
+  // CASCADING FILTER — dosen options menyesuaikan dengan kelas yang dipilih
+  // (kirim hanya kelas, agar daftar dosen tetap luas dan tidak self-restrict)
   useEffect(() => {
-    axios.get(`${API_URL}/aktivitas/options`)
-      .then(res => {
-        setDosenOpts(res.data?.dosen ?? []);
-        setKelasOpts(res.data?.kelas ?? []);
-      })
-      .catch(err => console.error("❌ pie options error:", err));
-  }, [API_URL]);
+    const params: any = {};
+    if (filterKelas) params.kelas = filterKelas;
+
+    axios
+      .get(`${API_URL}/aktivitas/options`, { params })
+      .then(res => setDosenOpts(res.data?.dosen ?? []))
+      .catch(err => console.error("❌ pie dosen options error:", err));
+  }, [API_URL, filterKelas]);
+
+  // CASCADING FILTER — kelas options menyesuaikan dengan dosen yang dipilih
+  useEffect(() => {
+    const params: any = {};
+    if (filterDosen) params.dosen = filterDosen;
+
+    axios
+      .get(`${API_URL}/aktivitas/options`, { params })
+      .then(res => setKelasOpts(res.data?.kelas ?? []))
+      .catch(err => console.error("❌ pie kelas options error:", err));
+  }, [API_URL, filterDosen]);
 
   // FETCH SUMMARY
   useEffect(() => {
