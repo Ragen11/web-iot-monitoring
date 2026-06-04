@@ -106,6 +106,24 @@ export default function useIdleLogout() {
 
     resetTimer();
 
+    // ──────────────────────────────────────────────────────────
+    // Track lastActiveTime untuk inactivity check di AuthContext
+    // - update setiap 30 detik selama user aktif
+    // - update juga saat tab ditutup (beforeunload)
+    // ──────────────────────────────────────────────────────────
+    const saveLastActive = () => {
+      localStorage.setItem("lastActiveTime", String(Date.now()));
+    };
+
+    // initial save
+    saveLastActive();
+
+    // periodic save
+    const lastActiveInterval = setInterval(saveLastActive, 30 * 1000);
+
+    // save saat tab/browser ditutup
+    window.addEventListener("beforeunload", saveLastActive);
+
     return () => {
 
       clearAllTimers();
@@ -113,6 +131,9 @@ export default function useIdleLogout() {
       events.forEach((event) => {
         window.removeEventListener(event, activityHandler);
       });
+
+      clearInterval(lastActiveInterval);
+      window.removeEventListener("beforeunload", saveLastActive);
     };
 
   }, [user]);

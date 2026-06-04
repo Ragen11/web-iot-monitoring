@@ -21,6 +21,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     console.log("[Auth] AuthProvider initializing...");
 
+    // ──────────────────────────────────────────────────────────────
+    // INACTIVITY CHECK: kalau lastActiveTime > 1 jam yang lalu,
+    // paksa logout (user tinggalkan aplikasi terlalu lama)
+    // ──────────────────────────────────────────────────────────────
+    const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 jam
+    try {
+      const lastActive = localStorage.getItem("lastActiveTime");
+      if (lastActive) {
+        const elapsed = Date.now() - Number(lastActive);
+        if (elapsed > INACTIVITY_LIMIT_MS) {
+          const minutes = Math.floor(elapsed / 60000);
+          console.warn(`[Auth] User inactive ${minutes} menit (> 1 jam) — forcing logout`);
+          localStorage.removeItem("lastActiveTime");
+          // Async signOut, akan trigger SIGNED_OUT event
+          supabase.auth.signOut().catch((err) =>
+            console.error("[Auth] signOut error:", err)
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[Auth] inactivity check error:", err);
+    }
+
     // Safety timeout: paksa loading=false setelah 5 detik
     const safetyTimeout = setTimeout(() => {
       console.warn("[Auth] Safety timeout triggered — forcing loading=false");
@@ -110,6 +133,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setUser(null);
     setRole(null);
+
+    // Bersihkan tracking inactivity
+    localStorage.removeItem("lastActiveTime");
 
     await supabase.auth.signOut();
   };
