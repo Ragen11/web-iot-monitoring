@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { SkeletonTable } from "../components/Skeleton";
 import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 export default function HasilMonitoring() {
 
@@ -15,7 +16,9 @@ export default function HasilMonitoring() {
   const ITEMS_PER_PAGE = 10;
 
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL  = import.meta.env.VITE_API_URL;
+  const { selected } = useTahunAjaran();
+  const taId = selected?.id;
 
   const scanDrive = async () => {
   try {
@@ -43,7 +46,9 @@ export default function HasilMonitoring() {
   const fetchMonitoring = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/monitoring`);
+      const params: any = {};
+      if (taId) params.tahun_ajaran_id = taId;
+      const res = await axios.get(`${API_URL}/monitoring`, { params });
       const safeData = Array.isArray(res.data) ? res.data : [];
       setData(safeData);
       setFilteredData(safeData);
@@ -58,17 +63,18 @@ export default function HasilMonitoring() {
 
     const init = async () => {
 
-      // 1. Scan dulu (biar DB update)
+      // 1. Scan dulu (biar DB update) — hanya saat first mount
       await scanDrive();
 
-      // 2. Ambil data terbaru
+      // 2. Ambil data terbaru (sesuai TA selected)
       await fetchMonitoring();
 
     };
 
     init();
 
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taId]);
 
   useEffect(() => {
 
@@ -82,10 +88,28 @@ export default function HasilMonitoring() {
       }
     });
 
+    // Urutkan secara default berdasarkan tanggal (terlama di atas), lalu jam
+    result.sort((a, b) => {
+      const diff = parseTanggal(a.tanggal) - parseTanggal(b.tanggal);
+      if (diff !== 0) return diff;
+      return String(a.jam || "").localeCompare(String(b.jam || ""));
+    });
+
     setFilteredData(result);
     setPage(1);
 
   }, [selectedFilter, data]);
+
+  // Parse tanggal jadi timestamp untuk sorting (dukung "YYYY-MM-DD" & "DD-MM-YYYY")
+  const parseTanggal = (val: string) => {
+    if (!val) return 0;
+    const parts = String(val).split(/[-/]/);
+    if (parts.length !== 3) return new Date(val).getTime() || 0;
+    const [a, b, c] = parts;
+    // Jika bagian pertama 4 digit -> YYYY-MM-DD, selain itu DD-MM-YYYY
+    const iso = a.length === 4 ? `${a}-${b}-${c}` : `${c}-${b}-${a}`;
+    return new Date(iso).getTime() || 0;
+  };
 
   const getOptions = (field: string) => {
 

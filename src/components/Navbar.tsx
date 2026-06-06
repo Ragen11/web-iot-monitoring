@@ -3,6 +3,7 @@ import { useAuth } from "../auth/useAuth";
 import { useNavigate } from "react-router-dom";
 import { FiMenu } from "react-icons/fi";
 import ConfirmDialog from "./ConfirmDialog";
+import TahunAjaranSwitcher from "./TahunAjaranSwitcher";
 
 type Props = {
   onMenuToggle: () => void;
@@ -101,6 +102,11 @@ export default function Navbar({ onMenuToggle }: Props) {
             </div>
           </div>
 
+          <div className="flex items-center gap-3">
+
+            {/* Tahun Ajaran Switcher */}
+            <TahunAjaranSwitcher />
+
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setOpen(!open)}
@@ -135,6 +141,7 @@ export default function Navbar({ onMenuToggle }: Props) {
             )}
 
           </div>
+          </div>{/* end RIGHT group */}
         </div>
       </div>
 

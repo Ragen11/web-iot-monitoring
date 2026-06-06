@@ -1,6 +1,7 @@
 import { FiBookOpen, FiLayers, FiClock, FiMessageCircle } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 import Card from "../components/Card";
 import ChartPie from "../components/charts/PieChart";
@@ -24,11 +25,18 @@ export default function Dashboard() {
   const [dominantPct,      setDominantPct]      = useState<number>(0);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selected } = useTahunAjaran();
+  const taId = selected?.id;
 
   useEffect(() => {
+    const baseParams: any = {};
+    if (taId) baseParams.tahun_ajaran_id = taId;
+
     // dashboard summary (total kelas, matkul, tepat waktu)
     axios
-      .get(`${API_URL}/dashboard/summary`, { params: { range_days: 30 } })
+      .get(`${API_URL}/dashboard/summary`, {
+        params: { ...baseParams, range_days: 30 },
+      })
       .then((res) => {
         setTotalKelas(res.data?.total_kelas ?? 0);
         setTotalMatkul(res.data?.total_matkul ?? 0);
@@ -38,13 +46,15 @@ export default function Dashboard() {
 
     // aktivitas dominan
     axios
-      .get(`${API_URL}/aktivitas/summary`, { params: { range_days: 30 } })
+      .get(`${API_URL}/aktivitas/summary`, {
+        params: { ...baseParams, range_days: 184 },
+      })
       .then((res) => {
         setDominantActivity(res.data?.dominant_activity ?? "-");
         setDominantPct(res.data?.dominant_pct ?? 0);
       })
       .catch((err) => console.error("❌ dominant activity error:", err));
-  }, [API_URL]);
+  }, [API_URL, taId]);
 
   // helper format
   const fmt = (n: number | null) => (n === null ? "…" : n.toLocaleString("id-ID"));

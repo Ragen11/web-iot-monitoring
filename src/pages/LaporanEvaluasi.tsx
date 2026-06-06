@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "../lib/supabase"; // 🔥 sesuaikan path
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -34,20 +35,24 @@ export default function LaporanEvaluasi() {
   const [currentStatus, setCurrentStatus] = useState<string>("");
 
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const { selected } = useTahunAjaran();
+  const taId = selected?.id;
 
   const filterList = ["dosen", "jumlah_pertemuan"];
 
   useEffect(() => {
     const fetchFilters = async () => {
       try {
-        const res = await axios.get(`${API}/filters`, { params: filters });
+        const params: any = { ...filters };
+        if (taId) params.tahun_ajaran_id = taId;
+        const res = await axios.get(`${API}/filters`, { params });
         setOptions(res.data);
       } catch (err) {
         console.error("Fetch filters failed:", err);
       }
     };
     fetchFilters();
-  }, [filters]);
+  }, [filters, taId]);
 
   useEffect(() => {
     return () => {
@@ -123,7 +128,9 @@ export default function LaporanEvaluasi() {
       setPdfUrl("");
       setCurrentStatus("pending");
 
-      const res = await axios.post(`${API}/generate-report`, filters);
+      const payload: any = { ...filters };
+      if (taId) payload.tahun_ajaran_id = taId;
+      const res = await axios.post(`${API}/generate-report`, payload);
       console.log("GENERATE RESPONSE:", res.data);
 
       const status = res.data.status;

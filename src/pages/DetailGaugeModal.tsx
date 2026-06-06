@@ -13,6 +13,7 @@ import { X } from "lucide-react";
 import axios from "axios";
 import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
 import RangeToggle, { type Range } from "../components/RangeToggle";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 type Props = {
   open: boolean;
@@ -183,6 +184,8 @@ export default function DetailGaugeModal({
   const [kelasOpts,    setKelasOpts]    = useState<string[]>([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selected } = useTahunAjaran();
+  const taId = selected?.id;
 
   /* ── ESC key ── */
   useEffect(() => {
@@ -191,17 +194,20 @@ export default function DetailGaugeModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  /* ── FETCH OPTIONS (sekali saja saat modal pertama buka) ── */
+  /* ── FETCH OPTIONS — refetch saat TA berubah ── */
   useEffect(() => {
-    if (!open || dosenOpts.length > 0) return;
+    if (!open) return;
 
-    axios.get(`${API_URL}/kehadiran/options`)
+    const params: any = {};
+    if (taId) params.tahun_ajaran_id = taId;
+
+    axios.get(`${API_URL}/kehadiran/options`, { params })
       .then(res => {
         setDosenOpts(res.data?.dosen ?? []);
         setKelasOpts(res.data?.kelas ?? []);
       })
       .catch(err => console.error("❌ options error:", err));
-  }, [open, API_URL, dosenOpts.length]);
+  }, [open, API_URL, taId]);
 
   /* ── FETCH DASHBOARD setiap filter berubah ── */
   useEffect(() => {
@@ -217,6 +223,7 @@ export default function DetailGaugeModal({
         };
         if (filterDosen) params.dosen = filterDosen;
         if (filterKelas) params.kelas = filterKelas;
+        if (taId)        params.tahun_ajaran_id = taId;
 
         const res = await axios.get<DashboardResp>(`${API_URL}/kehadiran/dashboard`, { params });
 
@@ -233,7 +240,7 @@ export default function DetailGaugeModal({
     };
 
     fetchDashboard();
-  }, [open, range, filterDosen, filterKelas, API_URL]);
+  }, [open, range, filterDosen, filterKelas, taId, API_URL]);
 
   /* ── Hitung posisi thumb ── */
   const calcThumb = () => {

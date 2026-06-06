@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { FiChevronDown, FiX, FiUploadCloud, FiFile } from "react-icons/fi";
 import { BsFiletypeCsv, BsFiletypeXlsx, BsFiletypePdf, BsFiletypeTxt } from "react-icons/bs";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 export default function InputJadwal() {
   const [files, setFiles] = useState<File[]>([]);
@@ -23,11 +24,15 @@ export default function InputJadwal() {
   const [selectedRuangan, setSelectedRuangan] = useState<string[]>([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selected, aktif } = useTahunAjaran();
+  const taId       = selected?.id;
+  const taAktifId  = aktif?.id;
 
   const fetchJadwal = async () => {
     try {
-      const res = await axios.get(`${API_URL}/scheduled/jadwal`);
-      console.log("DATA JADWAL:", res.data);
+      const params: any = {};
+      if (taId) params.tahun_ajaran_id = taId;
+      const res = await axios.get(`${API_URL}/scheduled/jadwal`, { params });
       setJadwal(res.data);
     } catch (error) {
       console.error("Gagal ambil jadwal:", error);
@@ -39,7 +44,8 @@ export default function InputJadwal() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taId]);
 
   useEffect(() => {
     const handleClick = () => setActiveFilter(null);
@@ -122,6 +128,7 @@ export default function InputJadwal() {
 
     const formData = new FormData();
     formData.append("file", file);
+    if (taAktifId) formData.append("tahun_ajaran_id", taAktifId);
 
     try {
       setLoading(true);

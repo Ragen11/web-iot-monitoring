@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import axios from "axios";
 import FilterDropdown, { type FilterOption } from "../FilterDropdown";
+import { useTahunAjaran } from "../../context/TahunAjaranContext";
 
 type TrendRow = {
   name: string;
@@ -33,34 +34,44 @@ export default function ChartLine() {
   const [loading,       setLoading]       = useState(true);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selected } = useTahunAjaran();
+  const taId = selected?.id;
 
-  // FETCH MONTHS (sekali)
+  // FETCH MONTHS (per TA)
   useEffect(() => {
+    const params: any = {};
+    if (taId) params.tahun_ajaran_id = taId;
     axios
-      .get(`${API_URL}/aktivitas/months`)
+      .get(`${API_URL}/aktivitas/months`, { params })
       .then((res) => {
         const list: string[] = res.data || [];
         setMonths(list);
         if (list.length > 0) setSelectedMonth(list[0]);
-        else setLoading(false);
+        else {
+          setSelectedMonth("");
+          setData([]);
+          setLoading(false);
+        }
       })
       .catch((err) => {
         console.error("❌ months error:", err);
         setLoading(false);
       });
-  }, [API_URL]);
+  }, [API_URL, taId]);
 
-  // FETCH TREND tiap bulan berubah
+  // FETCH TREND tiap bulan / TA berubah
   useEffect(() => {
     if (!selectedMonth) return;
 
     setLoading(true);
+    const params: any = { month: selectedMonth };
+    if (taId) params.tahun_ajaran_id = taId;
     axios
-      .get(`${API_URL}/aktivitas/trend`, { params: { month: selectedMonth } })
+      .get(`${API_URL}/aktivitas/trend`, { params })
       .then((res) => setData(res.data?.days || []))
       .catch((err) => console.error("❌ trend error:", err))
       .finally(() => setLoading(false));
-  }, [API_URL, selectedMonth]);
+  }, [API_URL, selectedMonth, taId]);
 
   const monthOpts: FilterOption[] = months.map((m) => ({ value: m, label: m }));
   const hasData = data.some((d) => d.ceramah + d.tanyaJawab + d.diskusi + d.tidakAda > 0);

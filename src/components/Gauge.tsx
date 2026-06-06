@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import FilterDropdown, { type FilterOption } from "./FilterDropdown";
 import RangeToggle, { type Range } from "./RangeToggle";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 type Props = {
   onDetailClick: () => void;
@@ -29,29 +30,33 @@ export default function Gauge({
   const [kelasOpts, setKelasOpts] = useState<string[]>([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selected } = useTahunAjaran();
+  const taId = selected?.id;
 
   // CASCADING FILTER — dosen options menyesuaikan dengan kelas yang dipilih
   // (kirim hanya kelas, agar daftar dosen tetap luas dan tidak self-restrict)
   useEffect(() => {
     const params: any = {};
     if (filterKelas) params.kelas = filterKelas;
+    if (taId)        params.tahun_ajaran_id = taId;
 
     axios
       .get(`${API_URL}/kehadiran/options`, { params })
       .then(res => setDosenOpts(res.data?.dosen ?? []))
       .catch(err => console.error("❌ gauge dosen options error:", err));
-  }, [API_URL, filterKelas]);
+  }, [API_URL, filterKelas, taId]);
 
   // CASCADING FILTER — kelas options menyesuaikan dengan dosen yang dipilih
   useEffect(() => {
     const params: any = {};
     if (filterDosen) params.dosen = filterDosen;
+    if (taId)        params.tahun_ajaran_id = taId;
 
     axios
       .get(`${API_URL}/kehadiran/options`, { params })
       .then(res => setKelasOpts(res.data?.kelas ?? []))
       .catch(err => console.error("❌ gauge kelas options error:", err));
-  }, [API_URL, filterDosen]);
+  }, [API_URL, filterDosen, taId]);
 
   // FETCH SUMMARY tiap filter berubah
   useEffect(() => {
@@ -63,6 +68,7 @@ export default function Gauge({
         const params: any = { range_days: RANGE_MAP[range] ?? 30 };
         if (filterDosen) params.dosen = filterDosen;
         if (filterKelas) params.kelas = filterKelas;
+        if (taId)        params.tahun_ajaran_id = taId;
 
         const res = await axios.get(`${API_URL}/kehadiran/summary`, { params });
         setTargetValue(res.data?.gauge_value ?? 0);
@@ -76,7 +82,7 @@ export default function Gauge({
 
     fetchSummary();
 
-  }, [API_URL, range, filterDosen, filterKelas]);
+  }, [API_URL, range, filterDosen, filterKelas, taId]);
 
   // SMOOTH ANIMATION
   useEffect(() => {

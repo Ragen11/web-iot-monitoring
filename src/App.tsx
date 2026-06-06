@@ -9,8 +9,10 @@ import InputJadwal from "./pages/InputJadwal";
 import InputRPS from "./pages/InputRPS";
 import DetailMonitoring from "./pages/DetailMonitoring";
 import Setting from "./pages/Setting";
+import TahunAjaran from "./pages/TahunAjaran";
 
 import { AuthProvider } from "./auth/AuthContext";
+import { TahunAjaranProvider } from "./context/TahunAjaranContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AdminRoute from "./auth/AdminRoute";
 
@@ -29,7 +31,9 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <MainLayout />
+                <TahunAjaranProvider>
+                  <MainLayout />
+                </TahunAjaranProvider>
               </ProtectedRoute>
             }
           >
@@ -49,6 +53,14 @@ function App() {
               element={
                 <AdminRoute>
                   <InputRPS />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="tahun-ajaran"
+              element={
+                <AdminRoute>
+                  <TahunAjaran />
                 </AdminRoute>
               }
             />

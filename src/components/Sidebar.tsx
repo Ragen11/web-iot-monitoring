@@ -6,6 +6,7 @@ import {
   FiSettings,
   FiCalendar,
   FiBook,
+  FiBookmark,
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../auth/useAuth";
@@ -96,6 +97,11 @@ export default function Sidebar({ isOpen, onClose }: Props) {
               <NavLink to="/input-rps" className={navClass} onClick={onClose}>
                 <FiBook />
                 <span className="text-sm font-medium">Input RPS</span>
+              </NavLink>
+
+              <NavLink to="/tahun-ajaran" className={navClass} onClick={onClose}>
+                <FiBookmark />
+                <span className="text-sm font-medium">Tahun Ajaran</span>
               </NavLink>
             </>
           )}

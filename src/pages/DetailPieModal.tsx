@@ -10,6 +10,7 @@ import { X } from "lucide-react";
 import axios from "axios";
 import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
 import RangeToggle, { type Range } from "../components/RangeToggle";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 type Props = {
   open: boolean;
@@ -76,6 +77,8 @@ export default function DetailPieModal({ open, onClose }: Props) {
   const [kelasOpts, setKelasOpts] = useState<string[]>([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selected } = useTahunAjaran();
+  const taId = selected?.id;
 
   // ESC close
   useEffect(() => {
@@ -86,17 +89,20 @@ export default function DetailPieModal({ open, onClose }: Props) {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  // FETCH OPTIONS sekali saat modal buka
+  // FETCH OPTIONS — refetch saat TA berubah
   useEffect(() => {
-    if (!open || dosenOpts.length > 0) return;
+    if (!open) return;
 
-    axios.get(`${API_URL}/aktivitas/options`)
+    const params: any = {};
+    if (taId) params.tahun_ajaran_id = taId;
+
+    axios.get(`${API_URL}/aktivitas/options`, { params })
       .then(res => {
         setDosenOpts(res.data?.dosen ?? []);
         setKelasOpts(res.data?.kelas ?? []);
       })
       .catch(err => console.error("❌ options error:", err));
-  }, [open, API_URL, dosenOpts.length]);
+  }, [open, API_URL, taId]);
 
   // FETCH DASHBOARD setiap filter berubah
   useEffect(() => {
@@ -109,6 +115,7 @@ export default function DetailPieModal({ open, onClose }: Props) {
         const params: any = { range_days: RANGE_MAP[range] ?? 30 };
         if (filterDosen) params.dosen = filterDosen;
         if (filterKelas) params.kelas = filterKelas;
+        if (taId)        params.tahun_ajaran_id = taId;
 
         const res = await axios.get(`${API_URL}/aktivitas/dashboard`, { params });
         setSummary(res.data?.summary ?? null);
@@ -121,13 +128,13 @@ export default function DetailPieModal({ open, onClose }: Props) {
     };
 
     fetchDashboard();
-  }, [open, range, filterDosen, filterKelas, API_URL]);
+  }, [open, range, filterDosen, filterKelas, taId, API_URL]);
 
   const summaryData = [
     { name: "Ceramah",     value: summary?.ceramah_pct     ?? 0, color: "#9F4A4A" },
     { name: "Tanya Jawab", value: summary?.tanya_jawab_pct ?? 0, color: "#000000" },
     { name: "Diskusi",     value: summary?.diskusi_pct     ?? 0, color: "#E6C7C7" },
-    { name: "Tidak Ada",   value: summary?.diam_pct        ?? 0, color: "#6B7280" },
+    { name: "Diam",   value: summary?.diam_pct        ?? 0, color: "#6B7280" },
   ];
 
   const hasData   = summaryData.some(d => d.value > 0);
@@ -267,7 +274,7 @@ export default function DetailPieModal({ open, onClose }: Props) {
                       <th className="pb-3">Ceramah</th>
                       <th className="pb-3">Tanya Jawab</th>
                       <th className="pb-3">Diskusi</th>
-                      <th className="pb-3">Tidak Ada</th>
+                      <th className="pb-3">Diam</th>
                     </tr>
                   </thead>
 

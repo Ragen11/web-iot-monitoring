@@ -13,6 +13,7 @@ import {
   BsFiletypePdf,
   BsFiletypeTxt,
 } from "react-icons/bs";
+import { useTahunAjaran } from "../context/TahunAjaranContext";
 
 type RPSItem = {
   id?: number;
@@ -38,14 +39,19 @@ export default function InputRPS() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selected, aktif } = useTahunAjaran();
+  const taId      = selected?.id;
+  const taAktifId = aktif?.id;
 
   // ────────────────────────────────────────────
-  // FETCH LIST RPS yang sudah ada di backend
+  // FETCH LIST RPS — filter by TA selected
   // ────────────────────────────────────────────
   const fetchRPS = async () => {
     try {
       setFetching(true);
-      const res = await axios.get(`${API_URL}/rps`);
+      const params: any = {};
+      if (taId) params.tahun_ajaran_id = taId;
+      const res = await axios.get(`${API_URL}/rps`, { params });
       // backend return: { status: "success", data: [...] }
       const list = res.data?.data;
       setRpsList(Array.isArray(list) ? list : []);
@@ -62,7 +68,7 @@ export default function InputRPS() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [taId]);
 
   // ────────────────────────────────────────────
   // FILE HANDLING
@@ -111,6 +117,7 @@ export default function InputRPS() {
 
     const formData = new FormData();
     formData.append("file", file);
+    if (taAktifId) formData.append("tahun_ajaran_id", taAktifId);
 
     try {
       setLoading(true);
