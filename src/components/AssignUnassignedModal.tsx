@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { FiX } from "react-icons/fi";
 import type { TahunAjaran } from "../context/TahunAjaranContext";
+import FilterDropdown, { type FilterOption } from "./FilterDropdown";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -184,20 +186,20 @@ export default function AssignUnassignedModal({
     );
   };
 
-  return (
+  return createPortal(
     <>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
         onClick={onClose}
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       >
           <div
             className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]"
@@ -221,19 +223,17 @@ export default function AssignUnassignedModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tahun Ajaran Target
                 </label>
-                <select
+                <FilterDropdown
+                  width="w-full"
+                  label="Pilih Tahun Ajaran"
                   value={taId}
-                  onChange={(e) => setTaId(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition bg-white"
-                >
-                  <option value="">— Pilih Tahun Ajaran —</option>
-                  {tahunAjaranList.map((ta) => (
-                    <option key={ta.id} value={ta.id}>
-                      {ta.label}
-                      {ta.is_aktif ? " (Aktif)" : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTaId}
+                  options={tahunAjaranList.map<FilterOption>((ta) => ({
+                    value: ta.id,
+                    label: `${ta.label}${ta.is_aktif ? " (Aktif)" : ""}`,
+                  }))}
+                  showReset={false}
+                />
               </div>
 
               {/* List unassigned */}
@@ -313,6 +313,7 @@ export default function AssignUnassignedModal({
             </div>
           </div>
         </motion.div>
-    </>
+    </>,
+    document.body
   );
 }
