@@ -15,6 +15,14 @@ const STATUS_LABEL: Record<string, string> = {
 
 type DosenItem  = { kode_dosen: string; nama_lengkap: string };
 type PeriodeOpt = { value: string; label: string };
+type MatkulInfo = {
+  kode_matkul:    string;
+  nama_matkul:    string;
+  total_tersedia: number;
+  pertemuan:      number[];
+  pra_uts:        number[];  // ptm tersedia di range 1-7
+  pasca_uts:      number[];  // ptm tersedia di range 9-15
+};
 type EvalItem   = {
   id: number;
   kode_dosen: string;
@@ -24,6 +32,67 @@ type EvalItem   = {
   error_message?: string | null;
   created_at: string;
 };
+
+// ── Komponen status ketersediaan pertemuan ────────────────────────────────────
+function PrereqStatus({ prereq, periodeLabel }: { prereq: any; periodeLabel: string }) {
+  const available = (prereq.available ?? {}) as Record<string, number[]>;
+  const missing   = (prereq.missing   ?? {}) as Record<string, number[]>;
+
+  // Gabung semua kode matkul dari kedua sisi
+  const allKodes = [...new Set([...Object.keys(available), ...Object.keys(missing)])];
+
+  const isAll     = prereq.can_generate === true;
+  const isPartial = !isAll && prereq.can_partial === true;
+  // isNone = !isAll && !isPartial
+
+  const wrapClass = isAll
+    ? "bg-green-50 border-green-200 text-green-800"
+    : isPartial
+    ? "bg-yellow-50 border-yellow-200 text-yellow-800"
+    : "bg-red-50 border-red-200 text-red-700";
+
+  const headline = isAll
+    ? "✓ Semua pertemuan tersedia. Laporan siap dibuat."
+    : isPartial
+    ? "⚠️ Laporan akan dibuat berdasarkan pertemuan yang tersedia."
+    : "❌ Belum ada laporan identifikasi yang selesai untuk periode ini.";
+
+  return (
+    <div className={`border rounded-xl p-3 space-y-2 ${wrapClass}`}>
+      <p className="text-xs font-medium">{headline}</p>
+
+      {/* Tabel ketersediaan per matkul */}
+      {allKodes.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs text-gray-500 font-medium">
+            Ketersediaan data — {periodeLabel}:
+          </p>
+          {allKodes.map((kode) => {
+            const avail = available[kode] ?? [];
+            const miss  = missing[kode]   ?? [];
+            return (
+              <div key={kode} className="flex items-baseline gap-3 text-xs">
+                <span className="font-mono font-semibold w-24 shrink-0">{kode}</span>
+                <span className="flex flex-wrap gap-x-3">
+                  {avail.length > 0 && (
+                    <span className="text-green-700">
+                      ✓ Ptm {avail.join(", ")}
+                    </span>
+                  )}
+                  {miss.length > 0 && (
+                    <span className="text-red-500">
+                      ✗ Belum: {miss.join(", ")}
+                    </span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function LaporanEvaluasi() {
   const { selected } = useTahunAjaran();
@@ -36,6 +105,10 @@ export default function LaporanEvaluasi() {
   // Filter yang dipilih user
   const [filterDosen,   setFilterDosen]   = useState("");
   const [filterPeriode, setFilterPeriode] = useState("");
+
+  // Info matkul dosen (fetch saat dosen dipilih)
+  const [matkulInfo,        setMatkulInfo]        = useState<MatkulInfo[]>([]);
+  const [matkulInfoLoading, setMatkulInfoLoading] = useState(false);
 
   // Prerequisite check
   const [prereq,        setPrereq]        = useState<any>(null);
@@ -63,6 +136,17 @@ export default function LaporanEvaluasi() {
       .then((res) => setPeriodeOptions(res.data?.data ?? []))
       .catch((err) => console.error("❌ fetch periode:", err));
   }, []);
+
+  // ── Fetch info matkul saat dosen berubah ─────────────────────────────────
+  useEffect(() => {
+    if (!filterDosen) { setMatkulInfo([]); return; }
+    setMatkulInfoLoading(true);
+    axios
+      .get(`${API}/evaluation/matkul-info`, { params: { kode_dosen: filterDosen } })
+      .then((res) => setMatkulInfo(res.data?.data ?? []))
+      .catch((err) => console.error("❌ fetch matkul-info:", err))
+      .finally(() => setMatkulInfoLoading(false));
+  }, [filterDosen]);
 
   // ── Prerequisite check saat dosen + periode berubah ──────────────────────
   useEffect(() => {
@@ -173,9 +257,11 @@ export default function LaporanEvaluasi() {
     }
   };
 
-  // Generate hanya aktif kalau: dosen + periode dipilih, prereq OK, tidak sedang loading
+  // Generate aktif kalau: dosen + periode dipilih, minimal sebagian data tersedia, tidak loading
   const canGenerate =
-    !!filterDosen && !!filterPeriode && prereq?.can_generate === true && !loading;
+    !!filterDosen && !!filterPeriode &&
+    (prereq?.can_generate === true || prereq?.can_partial === true) &&
+    !loading;
 
   const buttonLabel = loading
     ? STATUS_LABEL[currentStatus] || "Memproses..."
@@ -236,19 +322,70 @@ export default function LaporanEvaluasi() {
           </button>
         </div>
 
-        {/* Status prerequisite */}
+        {/* ── Info Mata Kuliah (tampil saat dosen dipilih) ──────────────────── */}
+        {filterDosen && (
+          matkulInfoLoading ? (
+            <p className="text-xs text-gray-400">Memuat info mata kuliah...</p>
+          ) : matkulInfo.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500">
+                Mata kuliah yang diampu:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {matkulInfo.map((mk) => (
+                  <div
+                    key={mk.kode_matkul}
+                    className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs space-y-1.5"
+                  >
+                    {/* Header matkul */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-gray-700">{mk.nama_matkul}</p>
+                        <p className="text-gray-400 font-mono">{mk.kode_matkul}</p>
+                      </div>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        mk.total_tersedia > 0
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}>
+                        {mk.total_tersedia} laporan
+                      </span>
+                    </div>
+
+                    {/* Ketersediaan per periode */}
+                    <div className="border-t border-gray-100 pt-1.5 space-y-0.5">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="w-24 shrink-0 text-gray-400">Pra-UTS (1–7)</span>
+                        <span className={mk.pra_uts.length > 0 ? "text-green-700 font-medium" : "text-gray-300"}>
+                          {mk.pra_uts.length > 0 ? `Ptm ${mk.pra_uts.join(", ")}` : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="w-24 shrink-0 text-gray-400">Pasca-UTS (9–15)</span>
+                        <span className={mk.pasca_uts.length > 0 ? "text-green-700 font-medium" : "text-gray-300"}>
+                          {mk.pasca_uts.length > 0 ? `Ptm ${mk.pasca_uts.join(", ")}` : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">
+              Dosen ini belum memiliki mata kuliah atau laporan di semester ini.
+            </p>
+          )
+        )}
+
+        {/* ── Status prerequisite (tampil saat dosen + periode dipilih) ─────── */}
         {filterDosen && filterPeriode && (
           prereqLoading ? (
             <p className="text-xs text-gray-400">Memeriksa kelengkapan data...</p>
-          ) : prereq?.can_generate === true ? (
-            <p className="text-xs text-green-600 font-medium">
-              ✓ Semua pertemuan sudah siap. Laporan dapat dibuat.
-            </p>
-          ) : prereq?.can_generate === false ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-sm text-yellow-700">
-              ⚠️ Beberapa pertemuan belum memiliki laporan identifikasi yang selesai.
-              Silakan generate ulang laporan identifikasi yang masih kurang terlebih dahulu.
-            </div>
+          ) : prereq !== null ? (
+            <PrereqStatus prereq={prereq} periodeLabel={
+              periodeOptions.find((p) => p.value === filterPeriode)?.label ?? filterPeriode
+            } />
           ) : null
         )}
       </div>
