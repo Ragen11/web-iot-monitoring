@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { FiX } from "react-icons/fi";
 import type { TahunAjaran } from "../context/TahunAjaranContext";
 
@@ -101,28 +101,51 @@ export default function AssignUnassignedModal({
       return;
     }
 
+    const endpoint =
+      type === "jadwal"
+        ? `${API_URL}/tahun-ajaran/assign-jadwal`
+        : `${API_URL}/tahun-ajaran/assign-rps`;
+
+    const payload = {
+      tahun_ajaran_id: taId,
+      ids: Array.from(selected),
+    };
+
     try {
       setSaving(true);
-      const endpoint =
-        type === "jadwal"
-          ? `${API_URL}/tahun-ajaran/assign-jadwal`
-          : `${API_URL}/tahun-ajaran/assign-rps`;
+      console.log("[ASSIGN] POST", endpoint, payload);
 
-      const res = await axios.post(endpoint, {
-        tahun_ajaran_id: taId,
-        ids: Array.from(selected),
-      });
+      const res = await axios.post(endpoint, payload);
+      console.log("[ASSIGN] response", res.data);
 
+      const affected = res.data?.affected ?? selected.size;
       toast.success(
-        res.data?.message || `${selected.size} data berhasil di-assign`
+        res.data?.message || `${affected} data berhasil di-assign`
       );
-      onSuccess();
-      onClose();
+
+      // Update state SEBELUM unmount agar tidak React warning
+      setSaving(false);
+
+      // Defer parent updates ke microtask berikutnya — beri waktu React
+      // selesai render saat ini sebelum modal di-unmount
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 0);
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.detail || err?.message || "Gagal assign data"
-      );
-    } finally {
+      console.error("[ASSIGN] error", err);
+
+      // Parse error message defensif (Pydantic kadang return array)
+      let errMsg = "Gagal assign data";
+      const detail = err?.response?.data?.detail;
+      if (typeof detail === "string") {
+        errMsg = detail;
+      } else if (Array.isArray(detail) && detail[0]?.msg) {
+        errMsg = detail[0].msg;
+      } else if (err?.message) {
+        errMsg = err.message;
+      }
+      toast.error(errMsg);
       setSaving(false);
     }
   };
@@ -156,23 +179,20 @@ export default function AssignUnassignedModal({
   };
 
   return (
-    <AnimatePresence>
-      <>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
           <div
             className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
@@ -287,7 +307,6 @@ export default function AssignUnassignedModal({
             </div>
           </div>
         </motion.div>
-      </>
-    </AnimatePresence>
+    </>
   );
 }
