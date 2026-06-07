@@ -63,7 +63,11 @@ export default function AssignUnassignedModal({
         setLoading(true);
         const url = `${API_URL}/tahun-ajaran/unassigned/${type}`;
         const res = await axios.get(url);
-        setItems(res.data?.data || []);
+        // ⚠️ jadwal_kuliah.id & rps_pertemuan.id adalah bigint di Supabase.
+        // Normalize jadi string biar konsisten di Set + saat POST.
+        const raw: any[] = res.data?.data || [];
+        const normalized = raw.map((it) => ({ ...it, id: String(it.id) }));
+        setItems(normalized);
       } catch (err) {
         console.error(err);
         toast.error("Gagal memuat data");
@@ -108,7 +112,9 @@ export default function AssignUnassignedModal({
 
     const payload = {
       tahun_ajaran_id: taId,
-      ids: Array.from(selected),
+      // Pastikan SEMUA id berupa string (backend Pydantic expect List[str]).
+      // Aman walau id sebenarnya bigint — PostgREST auto-cast saat update.
+      ids: Array.from(selected).map(String),
     };
 
     try {
