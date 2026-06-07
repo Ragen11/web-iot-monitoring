@@ -20,8 +20,8 @@ type MatkulInfo = {
   nama_matkul:    string;
   total_tersedia: number;
   pertemuan:      number[];
-  pra_uts:        number[];  // ptm tersedia di range 1-7
-  pasca_uts:      number[];  // ptm tersedia di range 9-15
+  pra_uts:        number[];  
+  pasca_uts:      number[];  
 };
 type EvalItem   = {
   id: number;
@@ -76,7 +76,7 @@ function PrereqStatus({ prereq, periodeLabel }: { prereq: any; periodeLabel: str
                 <span className="flex flex-wrap gap-x-3">
                   {avail.length > 0 && (
                     <span className="text-green-700">
-                      ✓ Ptm {avail.join(", ")}
+                      ✓ Mg {avail.join(", ")}
                     </span>
                   )}
                   {miss.length > 0 && (
@@ -357,13 +357,13 @@ export default function LaporanEvaluasi() {
                       <div className="flex items-center gap-2 text-gray-600">
                         <span className="w-24 shrink-0 text-gray-400">Pra-UTS (1–7)</span>
                         <span className={mk.pra_uts.length > 0 ? "text-green-700 font-medium" : "text-gray-300"}>
-                          {mk.pra_uts.length > 0 ? `Ptm ${mk.pra_uts.join(", ")}` : "—"}
+                          {mk.pra_uts.length > 0 ? `Mg ${mk.pra_uts.join(", ")}` : "—"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
                         <span className="w-24 shrink-0 text-gray-400">Pasca-UTS (9–15)</span>
                         <span className={mk.pasca_uts.length > 0 ? "text-green-700 font-medium" : "text-gray-300"}>
-                          {mk.pasca_uts.length > 0 ? `Ptm ${mk.pasca_uts.join(", ")}` : "—"}
+                          {mk.pasca_uts.length > 0 ? `Mg ${mk.pasca_uts.join(", ")}` : "—"}
                         </span>
                       </div>
                     </div>

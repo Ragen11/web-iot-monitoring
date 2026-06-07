@@ -31,6 +31,63 @@ export default function DetailMonitoring() {
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoWrapRef = useRef<HTMLDivElement>(null);
 
+  // Semester configuration
+  const SEMESTER_START_DATE = "2026-02-23";
+  const SKIP_WEEKS = ["2026-03-16", "2026-05-27"];
+
+  // Hitung minggu ke berdasarkan tanggal
+  const calculateMingguKe = (tanggal: string) => {
+    if (!tanggal) return null;
+
+    const startDate = new Date(SEMESTER_START_DATE);
+    startDate.setHours(0, 0, 0, 0);
+
+    const checkDate = new Date(tanggal);
+    checkDate.setHours(0, 0, 0, 0);
+
+    // Hitung hari selisih dari start date
+    const daysFromStart = Math.floor((checkDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weekIndex = Math.floor(daysFromStart / 7);
+
+    // Hitung minggu ke dengan menyesuaikan skip weeks
+    let mingguKe = weekIndex + 1;
+
+    // Hitung berapa banyak skip weeks yang ada SEBELUM week ini
+    const skipWeeksBeforeThisWeek = SKIP_WEEKS.filter((skipDate) => {
+      const skipDateObj = new Date(skipDate);
+      skipDateObj.setHours(0, 0, 0, 0);
+      const skipWeekIndex = Math.floor((skipDateObj.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
+      return skipWeekIndex < weekIndex;
+    }).length;
+
+    mingguKe = mingguKe - skipWeeksBeforeThisWeek;
+
+    return mingguKe > 0 ? mingguKe : null;
+  };
+
+  // Check if tanggal ini jatuh pada skip week
+  const isSkipWeek = (tanggal: string) => {
+    if (!tanggal) return false;
+
+    const startDate = new Date(SEMESTER_START_DATE);
+    startDate.setHours(0, 0, 0, 0);
+
+    const checkDate = new Date(tanggal);
+    checkDate.setHours(0, 0, 0, 0);
+
+    const daysFromStart = Math.floor((checkDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weekIndex = Math.floor(daysFromStart / 7);
+
+    const weekStartDate = new Date(startDate);
+    weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
+
+    return SKIP_WEEKS.some((skipDate) => {
+      const skip = new Date(skipDate);
+      skip.setHours(0, 0, 0, 0);
+      return weekStartDate.getTime() === skip.getTime();
+    });
+  };
+
   const handleFullscreen = () => {
     const el = videoWrapRef.current;
     if (!el) return;
@@ -56,6 +113,40 @@ export default function DetailMonitoring() {
       .then((res) => {
         const m = res.data;
 
+        // Sumber breakdown aktivitas: backend bisa kirim sebagai
+        // m.activity_stats (objek) ATAU langsung field di m. Handle keduanya.
+        const stats = m.activity_stats || m.aktivitas_stats || null;
+
+        const pickPct = (obj: any, ...keys: string[]) => {
+          for (const k of keys) {
+            const v = obj?.[k];
+            if (v !== null && v !== undefined && v !== "") return Number(v);
+          }
+          return null;
+        };
+
+        const aktivitasDetail = (() => {
+          const src = stats || m;
+          const ceramah    = pickPct(src, "ceramah_pct", "ceramah");
+          const tanyaJawab = pickPct(src, "tanya_jawab_pct", "tanyaJawab", "tanya_jawab");
+          const diskusi    = pickPct(src, "diskusi_pct", "diskusi");
+          const diam       = pickPct(src, "diam_pct", "diam", "tidak_ada_pct");
+          const dominant   = src?.dominant_activity || src?.aktivitas_dominan || m.aktivitas_dominan || null;
+
+          // Dianggap "ada data" kalau minimal salah satu persen terisi
+          const hasData =
+            [ceramah, tanyaJawab, diskusi, diam].some((v) => v !== null);
+
+          if (!hasData) return null;
+          return {
+            dominant,
+            ceramah:    ceramah    ?? 0,
+            tanyaJawab: tanyaJawab ?? 0,
+            diskusi:    diskusi    ?? 0,
+            diam:       diam       ?? 0,
+          };
+        })();
+
         const formatted = {
           id: m.id,
 
@@ -65,6 +156,9 @@ export default function DetailMonitoring() {
 
           // Jadwal
           hari: m.jadwal_kuliah?.hari || "-",
+
+          // Pertemuan ke
+          pertemuan_ke: m.pertemuan_ke ?? stats?.pertemuan_ke ?? null,
 
           // TANGGAL WAJIB ADA
           tanggal: m.tanggal || m.created_at?.split("T")[0] || "",
@@ -89,6 +183,9 @@ export default function DetailMonitoring() {
           // Monitoring
           kehadiran: m.kehadiran || "-",
           aktivitas: m.aktivitas_dominan || "-",
+
+          // Breakdown aktivitas (null kalau belum ada data)
+          aktivitasDetail,
 
           // Video
           video_url: m.video_url || "",
@@ -392,6 +489,9 @@ export default function DetailMonitoring() {
               <p>Tanggal</p>
               <p>: {data.tanggal || "-"}</p>
 
+              <p>Minggu</p>
+              <p>: {isSkipWeek(data.tanggal) ? "SKIP" : (calculateMingguKe(data.tanggal) != null ? `Minggu ${calculateMingguKe(data.tanggal)}` : "-")}</p>
+
               <p>Jam</p>
               <p>: {data.jamDisplay || data.jam || "-"}</p>
 
@@ -412,51 +512,70 @@ export default function DetailMonitoring() {
             </div>
           ) : (
             <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-y-3 text-sm">
-              {Array.from({ length: 18 }).map((_, i) => (
+              {Array.from({ length: 20 }).map((_, i) => (
                 <Sk key={i} className={i % 2 === 0 ? "h-3 w-20" : "h-3 w-40"} />
               ))}
             </div>
           )}
         </div>
 
-        {/* SECTION 2: AKTIVITAS — skeleton saat loading */}
+        {/* SECTION 2: AKTIVITAS — breakdown persentase */}
         <div>
           <p className="mb-2 text-sm">Aktivitas Kelas</p>
 
           {loading ? (
-            <div className="bg-gray-50 p-4 sm:p-6 rounded-xl">
-              <div className="h-4 rounded-full bg-gray-200 animate-pulse" />
-              <div className="flex justify-between mt-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Sk key={i} className="h-2 w-8" />
-                ))}
+            <div className="bg-gray-50 p-4 sm:p-6 rounded-xl space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Sk className="h-3 w-28" />
+                  <Sk className="h-3 w-12" />
+                </div>
+              ))}
+            </div>
+          ) : data?.aktivitasDetail ? (
+            <div className="bg-gray-50 p-4 sm:p-6 rounded-xl space-y-3">
+              {/* Aktivitas Dominan */}
+              <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+                <span className="text-sm text-gray-500">Aktivitas Dominan</span>
+                <span className="text-sm font-semibold text-primary">
+                  {data.aktivitasDetail.dominant || "-"}
+                </span>
               </div>
-              <div className="flex gap-4 mt-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Sk key={i} className="h-3 w-16" />
-                ))}
-              </div>
+
+              {/* Breakdown per aktivitas */}
+              {[
+                { label: "Ceramah",     value: data.aktivitasDetail.ceramah,    color: "bg-purple-500" },
+                { label: "Diskusi",     value: data.aktivitasDetail.diskusi,    color: "bg-red-400" },
+                { label: "Tanya Jawab", value: data.aktivitasDetail.tanyaJawab, color: "bg-blue-400" },
+                { label: "Diam",        value: data.aktivitasDetail.diam,       color: "bg-gray-400" },
+              ].map((row) => (
+                <div key={row.label} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 text-gray-600">
+                      <span className={`w-2.5 h-2.5 rounded-full ${row.color}`} />
+                      {row.label}
+                    </span>
+                    <span className="font-medium text-gray-700">{row.value}%</span>
+                  </div>
+                  {/* Progress bar tipis */}
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div
+                      className={`${row.color} h-1.5 rounded-full transition-all`}
+                      style={{ width: `${Math.min(row.value, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="bg-gray-100 p-4 sm:p-6 rounded-xl">
-              <div className="flex h-4 rounded-full overflow-hidden">
-                <div className="bg-purple-500 w-1/3"></div>
-                <div className="bg-red-400 w-1/6"></div>
-                <div className="bg-blue-400 w-1/2"></div>
-              </div>
-
-              <div className="flex justify-between text-xs mt-2 text-gray-400">
-                <span>08.00</span>
-                <span>09.00</span>
-                <span>09.15</span>
-                <span>10.00</span>
-              </div>
-
-              <div className="flex flex-wrap gap-3 sm:gap-4 text-xs mt-3">
-                <span className="text-purple-500">• Ceramah</span>
-                <span className="text-red-400">• Diskusi</span>
-                <span className="text-blue-400">• Tanya Jawab</span>
-              </div>
+            // Handler: data aktivitas belum tersedia
+            <div className="bg-gray-50 p-6 rounded-xl text-center">
+              <p className="text-sm text-gray-400">
+                Data aktivitas belum tersedia
+              </p>
+              <p className="text-xs text-gray-300 mt-1">
+                Aktivitas akan muncul setelah video sesi ini selesai dianalisis.
+              </p>
             </div>
           )}
         </div>

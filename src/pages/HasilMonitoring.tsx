@@ -20,6 +20,68 @@ export default function HasilMonitoring() {
   const { selected } = useTahunAjaran();
   const taId = selected?.id;
 
+  // Semester configuration
+  const SEMESTER_START_DATE = "2026-02-23";
+  const SKIP_WEEKS = ["2026-03-16", "2026-05-27"];
+
+  // Hitung minggu ke berdasarkan tanggal
+  const calculateMingguKe = (tanggal: string) => {
+    if (!tanggal) return null;
+
+    const startDate = new Date(SEMESTER_START_DATE);
+    startDate.setHours(0, 0, 0, 0);
+
+    const checkDate = new Date(tanggal);
+    checkDate.setHours(0, 0, 0, 0);
+
+    // Hitung hari selisih dari start date
+    const daysFromStart = Math.floor((checkDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weekIndex = Math.floor(daysFromStart / 7);
+
+    // Hitung minggu ke dengan menyesuaikan skip weeks
+    // Awalnya minggu adalah weekIndex + 1
+    let mingguKe = weekIndex + 1;
+
+    // Hitung berapa banyak skip weeks yang ada SEBELUM week ini
+    const skipWeeksBeforeThisWeek = SKIP_WEEKS.filter((skipDate) => {
+      const skipDateObj = new Date(skipDate);
+      skipDateObj.setHours(0, 0, 0, 0);
+      const skipWeekIndex = Math.floor((skipDateObj.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
+      return skipWeekIndex < weekIndex;
+    }).length;
+
+    // Kurangi minggu number dengan jumlah skip weeks sebelumnya
+    mingguKe = mingguKe - skipWeeksBeforeThisWeek;
+
+    return mingguKe > 0 ? mingguKe : null;
+  };
+
+  // Check if tanggal ini jatuh pada skip week
+  const isSkipWeek = (tanggal: string) => {
+    if (!tanggal) return false;
+
+    const startDate = new Date(SEMESTER_START_DATE);
+    startDate.setHours(0, 0, 0, 0);
+
+    const checkDate = new Date(tanggal);
+    checkDate.setHours(0, 0, 0, 0);
+
+    // Hitung week index dari checkDate
+    const daysFromStart = Math.floor((checkDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weekIndex = Math.floor(daysFromStart / 7);
+
+    // Hitung tanggal awal untuk week ini
+    const weekStartDate = new Date(startDate);
+    weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
+
+    // Cek apakah start date of this week ada di SKIP_WEEKS
+    return SKIP_WEEKS.some((skipDate) => {
+      const skip = new Date(skipDate);
+      skip.setHours(0, 0, 0, 0);
+      return weekStartDate.getTime() === skip.getTime();
+    });
+  };
+
   const scanDrive = async () => {
   try {
     const res = await axios.post(`${API_URL}/monitoring/scan-drive`);
@@ -127,6 +189,40 @@ export default function HasilMonitoring() {
 
   };
 
+  // ── Render helpers (no hardcode, handle data kosong) ──────────────────────
+  const renderMinggu = (tanggal: any) => {
+    if (isSkipWeek(tanggal)) {
+      return <span className="text-orange-600 font-medium">SKIP</span>;
+    }
+
+    const mingguKe = calculateMingguKe(tanggal);
+    if (mingguKe === null || mingguKe === undefined) {
+      return <span className="text-gray-300">—</span>;
+    }
+    return <span>Minggu {mingguKe}</span>;
+  };
+
+  const renderKehadiran = (val: any) => {
+    if (!val || val === "-") return <span className="text-gray-300">—</span>;
+    const lower = String(val).toLowerCase();
+
+    let cls = "bg-gray-100 text-gray-600";
+    if (lower.includes("tepat")) cls = "bg-green-100 text-green-700";
+    else if (lower.includes("terlambat")) cls = "bg-yellow-100 text-yellow-700";
+    else if (lower.includes("tidak")) cls = "bg-red-100 text-red-700";
+
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+        {val}
+      </span>
+    );
+  };
+
+  const renderAktivitas = (val: any) => {
+    if (!val || val === "-") return <span className="text-gray-300">—</span>;
+    return <span>{val}</span>;
+  };
+
   return (
     <div className="p-4 sm:p-6">
 
@@ -182,21 +278,22 @@ export default function HasilMonitoring() {
             <tr>
               <th className="p-3 text-left">Tanggal</th>
               <th className="p-3 text-left">Jam</th>
+              <th className="p-3 text-left">Minggu</th>
               <th className="p-3 text-left">Ruangan</th>
               <th className="p-3 text-left">Matkul</th>
               <th className="p-3 text-left">Kode Dosen</th>
               <th className="p-3 text-left">Kehadiran</th>
-              <th className="p-3 text-left">Aktivitas</th>
+              <th className="p-3 text-left">Aktivitas Dominan</th>
               <th className="p-3 text-left">Kelas</th>
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
-              <SkeletonTable rows={8} cols={8} />
+              <SkeletonTable rows={8} cols={9} />
             ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-10 text-center text-gray-400 text-sm">
+                <td colSpan={9} className="p-10 text-center text-gray-400 text-sm">
                   Tidak ada data monitoring yang ditemukan.
                 </td>
               </tr>
@@ -211,11 +308,12 @@ export default function HasilMonitoring() {
                 >
                   <td className="p-3">{item.tanggal}</td>
                   <td className="p-3">{item.jam}</td>
+                  <td className="p-3">{renderMinggu(item.tanggal)}</td>
                   <td className="p-3">{item.ruangan}</td>
                   <td className="p-3">{item.matkul}</td>
                   <td className="p-3">{item.kodeDosen}</td>
-                  <td className="p-3 text-green-600">✔ {item.kehadiran}</td>
-                  <td className="p-3">{item.aktivitas}</td>
+                  <td className="p-3">{renderKehadiran(item.kehadiran)}</td>
+                  <td className="p-3">{renderAktivitas(item.aktivitas)}</td>
                   <td className="p-3">{item.kelas}</td>
                 </tr>
               ))
