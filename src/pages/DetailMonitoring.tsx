@@ -4,6 +4,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { FiChevronRight, FiArrowLeft, FiMaximize2 } from "react-icons/fi";
 import { supabase } from "../lib/supabase";
+import { calculateMingguKe, isSkipWeek } from "../lib/semester";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -30,63 +31,6 @@ export default function DetailMonitoring() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoWrapRef = useRef<HTMLDivElement>(null);
-
-  // Semester configuration
-  const SEMESTER_START_DATE = "2026-02-23";
-  const SKIP_WEEKS = ["2026-03-16", "2026-05-27"];
-
-  // Hitung minggu ke berdasarkan tanggal
-  const calculateMingguKe = (tanggal: string) => {
-    if (!tanggal) return null;
-
-    const startDate = new Date(SEMESTER_START_DATE);
-    startDate.setHours(0, 0, 0, 0);
-
-    const checkDate = new Date(tanggal);
-    checkDate.setHours(0, 0, 0, 0);
-
-    // Hitung hari selisih dari start date
-    const daysFromStart = Math.floor((checkDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const weekIndex = Math.floor(daysFromStart / 7);
-
-    // Hitung minggu ke dengan menyesuaikan skip weeks
-    let mingguKe = weekIndex + 1;
-
-    // Hitung berapa banyak skip weeks yang ada SEBELUM week ini
-    const skipWeeksBeforeThisWeek = SKIP_WEEKS.filter((skipDate) => {
-      const skipDateObj = new Date(skipDate);
-      skipDateObj.setHours(0, 0, 0, 0);
-      const skipWeekIndex = Math.floor((skipDateObj.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
-      return skipWeekIndex < weekIndex;
-    }).length;
-
-    mingguKe = mingguKe - skipWeeksBeforeThisWeek;
-
-    return mingguKe > 0 ? mingguKe : null;
-  };
-
-  // Check if tanggal ini jatuh pada skip week
-  const isSkipWeek = (tanggal: string) => {
-    if (!tanggal) return false;
-
-    const startDate = new Date(SEMESTER_START_DATE);
-    startDate.setHours(0, 0, 0, 0);
-
-    const checkDate = new Date(tanggal);
-    checkDate.setHours(0, 0, 0, 0);
-
-    const daysFromStart = Math.floor((checkDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const weekIndex = Math.floor(daysFromStart / 7);
-
-    const weekStartDate = new Date(startDate);
-    weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
-
-    return SKIP_WEEKS.some((skipDate) => {
-      const skip = new Date(skipDate);
-      skip.setHours(0, 0, 0, 0);
-      return weekStartDate.getTime() === skip.getTime();
-    });
-  };
 
   const handleFullscreen = () => {
     const el = videoWrapRef.current;

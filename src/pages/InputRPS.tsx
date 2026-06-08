@@ -110,10 +110,17 @@ export default function InputRPS() {
 
     const file = files[0];
 
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      toast.error("File harus format CSV!");
+    const lower = file.name.toLowerCase();
+    const isCsv = lower.endsWith(".csv");
+    const isPdf = lower.endsWith(".pdf");
+
+    if (!isCsv && !isPdf) {
+      toast.error("File harus format CSV atau PDF!");
       return;
     }
+
+    // Pilih endpoint sesuai tipe file
+    const endpoint = isPdf ? "/rps/upload-pdf" : "/rps/upload-csv";
 
     const formData = new FormData();
     formData.append("file", file);
@@ -124,7 +131,7 @@ export default function InputRPS() {
       setProgress(0);
 
       const response = await axios.post(
-        `${API_URL}/rps/upload-csv`,
+        `${API_URL}${endpoint}`,
         formData,
         {
           onUploadProgress: (progressEvent) => {
@@ -188,7 +195,7 @@ export default function InputRPS() {
         <h2 className="font-semibold mb-2">Media Upload</h2>
 
         <p className="text-sm text-gray-400 mb-4">
-          Upload data RPS dalam format CSV. Maksimal 1 file.
+          Upload data RPS dalam format CSV atau PDF. Maksimal 1 file.
         </p>
 
         <label className="border-2 border-dashed border-blue-300 rounded-xl p-6 sm:p-10 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 transition">
@@ -205,7 +212,7 @@ export default function InputRPS() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.pdf"
             className="hidden"
             onChange={handleUpload}
           />
@@ -275,10 +282,11 @@ export default function InputRPS() {
         )}
 
         <p className="text-xs text-gray-400 mt-3">
-          Only support .csv files. Format kolom:{" "}
+          Mendukung file .csv dan .pdf. Untuk CSV, format kolom:{" "}
           <code className="text-gray-500">
             kode_matkul, pertemuan_ke, materi_pembelajaran, pengalaman_pembelajaran_mahasiswa
           </code>
+          . Untuk PDF, sistem akan mengekstrak data RPS secara otomatis.
         </p>
 
         <button
@@ -307,7 +315,7 @@ export default function InputRPS() {
           <p className="text-sm text-gray-400">Memuat data…</p>
         ) : rpsList.length === 0 ? (
           <p className="text-sm text-gray-400">
-            Belum ada data RPS. Silakan upload CSV terlebih dahulu.
+            Belum ada data RPS. Silakan upload file CSV atau PDF terlebih dahulu.
           </p>
         ) : (
           <div className="space-y-3">
