@@ -32,6 +32,29 @@ type EvalItem   = {
   error_message?: string | null;
   created_at: string;
 };
+type KelasSummary = {
+  kode_matkul:               string;
+  nama_matkul:               string;
+  kelas:                     string;
+  kode_dosen:                string;
+  nama_dosen:                string;
+  ketepatan_materi:          number | null;
+  ketepatan_waktu_mengajar:  number | null;
+  total_pertemuan:           number;
+  dinilai_materi:            number;
+  pertemuan_dihitung:        number;
+  durasi_aktual_total:       number;
+  durasi_harapan_total:      number;
+  durasi_harapan_per_pertemuan: number | null;
+};
+type DosenPerforma = {
+  kode_dosen:                string;
+  nama_dosen:                string;
+  performa:                  number | null;
+  ketepatan_materi:          number | null;
+  ketepatan_waktu_mengajar:  number | null;
+  kehadiran:                 number | null;
+};
 
 // ── Komponen status ketersediaan pertemuan ────────────────────────────────────
 function PrereqStatus({ prereq, periodeLabel }: { prereq: any; periodeLabel: string }) {
@@ -98,6 +121,14 @@ export default function LaporanEvaluasi() {
   const { selected } = useTahunAjaran();
   const taId = selected?.id;
 
+  // Tabel ringkasan ketepatan per kelas
+  const [kelasSummary, setKelasSummary] = useState<KelasSummary[]>([]);
+  const [kelasLoading, setKelasLoading] = useState(true);
+
+  // Tabel performa dosen
+  const [dosenPerforma, setDosenPerforma]     = useState<DosenPerforma[]>([]);
+  const [dosenPerfLoading, setDosenPerfLoading] = useState(true);
+
   // Options untuk dropdown
   const [dosenList,      setDosenList]      = useState<DosenItem[]>([]);
   const [periodeOptions, setPeriodeOptions] = useState<PeriodeOpt[]>([]);
@@ -136,6 +167,36 @@ export default function LaporanEvaluasi() {
       .then((res) => setPeriodeOptions(res.data?.data ?? []))
       .catch((err) => console.error("❌ fetch periode:", err));
   }, []);
+
+  // ── Fetch tabel ringkasan kelas (ikut Tahun Ajaran aktif) ─────────────────
+  useEffect(() => {
+    setKelasLoading(true);
+    const params: any = {};
+    if (taId) params.tahun_ajaran_id = taId;
+    axios
+      .get(`${API}/evaluation/kelas-summary`, { params })
+      .then((res) => setKelasSummary(Array.isArray(res.data) ? res.data : []))
+      .catch((err) => {
+        console.error("❌ fetch kelas-summary:", err);
+        setKelasSummary([]);
+      })
+      .finally(() => setKelasLoading(false));
+  }, [taId]);
+
+  // ── Fetch tabel performa dosen (ikut Tahun Ajaran aktif) ──────────────────
+  useEffect(() => {
+    setDosenPerfLoading(true);
+    const params: any = {};
+    if (taId) params.tahun_ajaran_id = taId;
+    axios
+      .get(`${API}/evaluation/dosen-performa`, { params })
+      .then((res) => setDosenPerforma(Array.isArray(res.data) ? res.data : []))
+      .catch((err) => {
+        console.error("❌ fetch dosen-performa:", err);
+        setDosenPerforma([]);
+      })
+      .finally(() => setDosenPerfLoading(false));
+  }, [taId]);
 
   // ── Fetch info matkul saat dosen berubah ─────────────────────────────────
   useEffect(() => {
@@ -267,9 +328,150 @@ export default function LaporanEvaluasi() {
     ? STATUS_LABEL[currentStatus] || "Memproses..."
     : "Generate Laporan";
 
+  // Badge persen dengan warna sesuai nilai
+  const pctBadge = (v: number | null) => {
+    if (v === null || v === undefined) return <span className="text-gray-300">—</span>;
+    let cls = "bg-red-100 text-red-700";
+    if (v >= 85) cls = "bg-green-100 text-green-700";
+    else if (v >= 70) cls = "bg-yellow-100 text-yellow-700";
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+        {v}%
+      </span>
+    );
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <h1 className="text-xl font-semibold">Laporan Evaluasi</h1>
+
+      {/* ── TABEL KELAS — ringkasan ketepatan materi & waktu ───────────────── */}
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
+        <h2 className="font-semibold text-gray-700 mb-1">Ringkasan Ketepatan per Kelas</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Ketepatan materi &amp; waktu dihitung dari laporan yang telah dievaluasi terhadap RPS.
+        </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
+            <thead>
+              <tr className="text-left text-gray-500 border-b border-gray-100">
+                <th className="pb-2 font-medium">Kode Matkul</th>
+                <th className="pb-2 font-medium">Kelas</th>
+                <th className="pb-2 font-medium">Nama Dosen</th>
+                <th className="pb-2 font-medium text-center">Ketepatan Materi</th>
+                <th className="pb-2 font-medium text-center">Ketepatan Waktu Mengajar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {kelasLoading ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-gray-400 text-sm">
+                    Memuat data…
+                  </td>
+                </tr>
+              ) : kelasSummary.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-gray-400 text-sm">
+                    Belum ada data evaluasi kelas.
+                  </td>
+                </tr>
+              ) : (
+                kelasSummary.map((row, i) => (
+                  <tr
+                    key={`${row.kode_matkul}-${row.kelas}-${row.kode_dosen}-${i}`}
+                    className="border-t border-gray-50 hover:bg-gray-50 transition"
+                  >
+                    <td className="py-2.5 pr-4">
+                      <p className="font-medium text-gray-700 font-mono">{row.kode_matkul}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[160px]" title={row.nama_matkul}>
+                        {row.nama_matkul}
+                      </p>
+                    </td>
+                    <td className="py-2.5 pr-4 text-gray-700">{row.kelas}</td>
+                    <td className="py-2.5 pr-4">
+                      <p className="text-gray-700">{row.nama_dosen}</p>
+                      <p className="text-xs text-gray-400 font-mono">({row.kode_dosen})</p>
+                    </td>
+                    <td className="py-2.5 pr-4 text-center">
+                      {pctBadge(row.ketepatan_materi)}
+                    </td>
+                    <td
+                      className="py-2.5 text-center"
+                      title={
+                        row.ketepatan_waktu_mengajar === null
+                          ? "Belum ada data durasi"
+                          : `Aktual ${row.durasi_aktual_total} mnt dari harapan ${row.durasi_harapan_total} mnt ` +
+                            `(${row.durasi_harapan_per_pertemuan} mnt × ${row.pertemuan_dihitung} pertemuan)`
+                      }
+                    >
+                      {pctBadge(row.ketepatan_waktu_mengajar)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── TABEL DOSEN — % Performa ───────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
+        <h2 className="font-semibold text-gray-700 mb-1">Performa Dosen</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Gabungan berbobot: Ketepatan Materi 50% · Ketepatan Waktu Mengajar 30% · Kehadiran 20%
+        </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[420px]">
+            <thead>
+              <tr className="text-left text-gray-500 border-b border-gray-100">
+                <th className="pb-2 font-medium">Kode Dosen</th>
+                <th className="pb-2 font-medium text-center">% Performa</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dosenPerfLoading ? (
+                <tr>
+                  <td colSpan={2} className="py-6 text-center text-gray-400 text-sm">
+                    Memuat data…
+                  </td>
+                </tr>
+              ) : dosenPerforma.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="py-6 text-center text-gray-400 text-sm">
+                    Belum ada data performa dosen.
+                  </td>
+                </tr>
+              ) : (
+                dosenPerforma.map((d) => (
+                  <tr
+                    key={d.kode_dosen}
+                    className="border-t border-gray-50 hover:bg-gray-50 transition"
+                  >
+                    <td className="py-2.5 pr-4">
+                      <p className="font-medium text-gray-700 font-mono">{d.kode_dosen}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[220px]" title={d.nama_dosen}>
+                        {d.nama_dosen}
+                      </p>
+                    </td>
+                    <td
+                      className="py-2.5 text-center"
+                      title={
+                        `Materi ${d.ketepatan_materi ?? "–"}% · ` +
+                        `Waktu Mengajar ${d.ketepatan_waktu_mengajar ?? "–"}% · ` +
+                        `Kehadiran ${d.kehadiran ?? "–"}%`
+                      }
+                    >
+                      {pctBadge(d.performa)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* ── FILTER + GENERATE ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4">

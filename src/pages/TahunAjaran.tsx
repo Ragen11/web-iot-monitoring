@@ -3,7 +3,6 @@ import axios from "axios";
 import { toast } from "sonner";
 import {
   FiPlus,
-  FiCheck,
   FiTrash2,
   FiCalendar,
   FiBookOpen,
@@ -24,7 +23,6 @@ export default function TahunAjaranPage() {
   const [creating, setCreating] = useState(false);
 
   // Aksi per row
-  const [activating, setActivating]   = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TahunAjaran | null>(null);
 
   // Assign data lama modal
@@ -57,22 +55,6 @@ export default function TahunAjaranPage() {
     }
   };
 
-  const handleActivate = async (ta: TahunAjaran) => {
-    try {
-      setActivating(ta.id);
-      await axios.patch(`${API_URL}/tahun-ajaran/${ta.id}`, {
-        is_aktif: true,
-      });
-      toast.success(`${ta.label} sekarang aktif`);
-      await refresh();
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.detail || err?.message || "Gagal mengaktifkan"
-      );
-    } finally {
-      setActivating(null);
-    }
-  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -95,7 +77,7 @@ export default function TahunAjaranPage() {
         <div>
           <h1 className="text-xl font-semibold">Tahun Ajaran</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            Kelola tahun ajaran, set yang aktif, dan assign data ke TA
+            Kelola tahun ajaran dan assign data ke TA. Yang <span className="font-medium text-green-600">AKTIF</span> ditentukan otomatis dari bulan berjalan (Genap: Feb–Jul · Ganjil: Agu–Jan).
           </p>
         </div>
         <button
@@ -215,16 +197,6 @@ export default function TahunAjaranPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {!isAktif && (
-                    <button
-                      onClick={() => handleActivate(ta)}
-                      disabled={activating === ta.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 text-primary text-xs font-medium hover:bg-primary/5 transition disabled:opacity-50"
-                    >
-                      <FiCheck size={13} />
-                      {activating === ta.id ? "Mengaktifkan..." : "Aktifkan"}
-                    </button>
-                  )}
                   <button
                     onClick={() => setDeleteTarget(ta)}
                     disabled={isAktif}

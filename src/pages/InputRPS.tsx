@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -6,6 +6,8 @@ import {
   FiUploadCloud,
   FiFile,
   FiBookOpen,
+  FiChevronDown,
+  FiChevronRight,
 } from "react-icons/fi";
 import {
   BsFiletypeCsv,
@@ -34,6 +36,28 @@ export default function InputRPS() {
   // list state
   const [rpsList, setRpsList]   = useState<RPSItem[]>([]);
   const [fetching, setFetching] = useState(true);
+
+  // accordion: matkul mana yang sedang dibuka
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (kode: string) =>
+    setExpanded((prev) => ({ ...prev, [kode]: !prev[kode] }));
+
+  // Kelompokkan RPS per kode_matkul, pertemuan diurutkan menaik
+  const groupedRps = useMemo(() => {
+    const map = new Map<string, RPSItem[]>();
+    for (const item of rpsList) {
+      const arr = map.get(item.kode_matkul) ?? [];
+      arr.push(item);
+      map.set(item.kode_matkul, arr);
+    }
+    return Array.from(map.entries())
+      .map(([kode, items]) => ({
+        kode_matkul: kode,
+        items: [...items].sort((a, b) => a.pertemuan_ke - b.pertemuan_ke),
+      }))
+      .sort((a, b) => a.kode_matkul.localeCompare(b.kode_matkul));
+  }, [rpsList]);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -319,54 +343,75 @@ export default function InputRPS() {
           </p>
         ) : (
           <div className="space-y-3">
-            {rpsList.map((item, i) => (
-              <div
-                key={item.id ?? i}
-                className="border border-gray-100 rounded-xl p-4 bg-gray-50 flex gap-4"
-              >
-                {/* BADGE */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center">
-                  <span className="text-[10px] text-primary font-medium leading-none">
-                    Prt.
-                  </span>
-                  <span className="text-lg font-bold text-primary leading-none">
-                    {item.pertemuan_ke}
-                  </span>
-                </div>
-
-                {/* CONTENT */}
-                <div className="flex-1 min-w-0 space-y-1 text-sm">
-                  <div>
-                    <span className="text-xs text-gray-400">
-                      Kode Matkul
-                    </span>
-                    <p className="text-gray-700 font-medium">
-                      {item.kode_matkul}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="text-xs text-gray-400">
-                      Materi Pembelajaran
-                    </span>
-                    <p className="text-gray-700 line-clamp-2">
-                      {item.materi_pembelajaran}
-                    </p>
-                  </div>
-
-                  {item.pengalaman_pembelajaran_mahasiswa && (
-                    <div>
-                      <span className="text-xs text-gray-400">
-                        Pengalaman Pembelajaran
+            {groupedRps.map((group) => {
+              const isOpen = !!expanded[group.kode_matkul];
+              return (
+                <div
+                  key={group.kode_matkul}
+                  className="border border-gray-100 rounded-xl overflow-hidden"
+                >
+                  {/* HEADER MATKUL (klik untuk buka/tutup) */}
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.kode_matkul)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-gray-400">
+                        {isOpen ? <FiChevronDown size={18} /> : <FiChevronRight size={18} />}
                       </span>
-                      <p className="text-gray-700 line-clamp-2">
-                        {item.pengalaman_pembelajaran_mahasiswa}
-                      </p>
+                      <span className="font-semibold text-gray-700 font-mono truncate">
+                        {group.kode_matkul}
+                      </span>
+                    </div>
+                    <span className="shrink-0 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      {group.items.length} pertemuan
+                    </span>
+                  </button>
+
+                  {/* ISI PERTEMUAN (saat dibuka) */}
+                  {isOpen && (
+                    <div className="p-3 space-y-2 bg-white">
+                      {group.items.map((item, i) => (
+                        <div
+                          key={item.id ?? i}
+                          className="border border-gray-100 rounded-lg p-3 bg-gray-50 flex gap-3"
+                        >
+                          {/* BADGE PERTEMUAN */}
+                          <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-primary/10 flex flex-col items-center justify-center">
+                            <span className="text-[9px] text-primary font-medium leading-none">
+                              Prt.
+                            </span>
+                            <span className="text-base font-bold text-primary leading-none">
+                              {item.pertemuan_ke}
+                            </span>
+                          </div>
+
+                          {/* CONTENT */}
+                          <div className="flex-1 min-w-0 space-y-1 text-sm">
+                            <div>
+                              <span className="text-xs text-gray-400">Materi Pembelajaran</span>
+                              <p className="text-gray-700 line-clamp-2">
+                                {item.materi_pembelajaran}
+                              </p>
+                            </div>
+
+                            {item.pengalaman_pembelajaran_mahasiswa && (
+                              <div>
+                                <span className="text-xs text-gray-400">Pengalaman Pembelajaran</span>
+                                <p className="text-gray-700 line-clamp-2">
+                                  {item.pengalaman_pembelajaran_mahasiswa}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
