@@ -8,7 +8,9 @@ import {
   FiBookOpen,
   FiChevronDown,
   FiChevronRight,
+  FiTrash2,
 } from "react-icons/fi";
+import ConfirmDialog from "../components/ConfirmDialog";
 import {
   BsFiletypeCsv,
   BsFiletypeXlsx,
@@ -42,6 +44,34 @@ export default function InputRPS() {
 
   const toggleGroup = (kode: string) =>
     setExpanded((prev) => ({ ...prev, [kode]: !prev[kode] }));
+
+  // hapus RPS (satu pertemuan atau seluruh matkul)
+  type DeleteTarget =
+    | { type: "one"; id: number; label: string }
+    | { type: "matkul"; kode: string; label: string };
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteRps = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeleting(true);
+      if (deleteTarget.type === "one") {
+        await axios.delete(`${API_URL}/rps/${deleteTarget.id}`);
+      } else {
+        await axios.delete(`${API_URL}/rps/matkul/${encodeURIComponent(deleteTarget.kode)}`);
+      }
+      toast.success("Data RPS berhasil dihapus");
+      setDeleteTarget(null);
+      fetchRPS();
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.detail || err?.message || "Gagal menghapus RPS"
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Kelompokkan RPS per kode_matkul, pertemuan diurutkan menaik
   const groupedRps = useMemo(() => {
@@ -350,24 +380,40 @@ export default function InputRPS() {
                   key={group.kode_matkul}
                   className="border border-gray-100 rounded-xl overflow-hidden"
                 >
-                  {/* HEADER MATKUL (klik untuk buka/tutup) */}
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(group.kode_matkul)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
+                  {/* HEADER MATKUL */}
+                  <div className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gray-50">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.kode_matkul)}
+                      className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-75 transition"
+                    >
                       <span className="text-gray-400">
                         {isOpen ? <FiChevronDown size={18} /> : <FiChevronRight size={18} />}
                       </span>
                       <span className="font-semibold text-gray-700 font-mono truncate">
                         {group.kode_matkul}
                       </span>
+                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        {group.items.length} pertemuan
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeleteTarget({
+                            type: "matkul",
+                            kode: group.kode_matkul,
+                            label: `semua ${group.items.length} pertemuan ${group.kode_matkul}`,
+                          })
+                        }
+                        className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                        title="Hapus semua pertemuan matkul ini"
+                      >
+                        <FiTrash2 size={15} />
+                      </button>
                     </div>
-                    <span className="shrink-0 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                      {group.items.length} pertemuan
-                    </span>
-                  </button>
+                  </div>
 
                   {/* ISI PERTEMUAN (saat dibuka) */}
                   {isOpen && (
@@ -405,6 +451,24 @@ export default function InputRPS() {
                               </div>
                             )}
                           </div>
+
+                          {/* TOMBOL HAPUS PERTEMUAN */}
+                          {item.id != null && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDeleteTarget({
+                                  type: "one",
+                                  id: item.id!,
+                                  label: `pertemuan ${item.pertemuan_ke} (${group.kode_matkul})`,
+                                })
+                              }
+                              className="shrink-0 self-start p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
+                              title="Hapus pertemuan ini"
+                            >
+                              <FiTrash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -415,6 +479,20 @@ export default function InputRPS() {
           </div>
         )}
       </div>
+
+      {/* Konfirmasi hapus RPS */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Hapus Data RPS"
+        message={
+          deleteTarget
+            ? `Yakin ingin menghapus ${deleteTarget.label}? Tindakan ini tidak bisa dibatalkan.`
+            : ""
+        }
+        confirmLabel={deleting ? "Menghapus..." : "Ya, Hapus"}
+        onConfirm={handleDeleteRps}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

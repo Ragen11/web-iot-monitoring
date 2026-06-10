@@ -195,7 +195,7 @@ export default function DetailPieModal({ open, onClose }: Props) {
                     onChange={setFilterDosen}
                     options={dosenOpts.map<FilterOption>((d) => ({
                       value: d.kode,
-                      label: d.nama || d.kode,
+                      label: d.kode,
                     }))}
                   />
 

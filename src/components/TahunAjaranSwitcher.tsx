@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { FiChevronDown, FiCheck, FiCalendar, FiLayers } from "react-icons/fi";
+import { FiChevronDown, FiCheck, FiCalendar, FiLayers, FiSettings } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
+import { useAuth } from "../auth/useAuth";
 
 export default function TahunAjaranSwitcher() {
   const { list, aktif, selected, setSelected, loading } = useTahunAjaran();
+  const { role } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -128,6 +132,17 @@ export default function TahunAjaranSwitcher() {
               })
             )}
           </div>
+
+          {/* Footer: kelola TA (admin) — akses halaman dari navbar */}
+          {role === "admin" && (
+            <button
+              onClick={() => { setOpen(false); navigate("/tahun-ajaran"); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 border-t border-gray-100 transition text-left"
+            >
+              <FiSettings size={14} className="text-gray-400 shrink-0" />
+              <span>Kelola Tahun Ajaran</span>
+            </button>
+          )}
         </div>
       )}
     </div>

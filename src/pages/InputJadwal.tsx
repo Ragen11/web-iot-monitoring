@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { FiChevronDown, FiX, FiUploadCloud, FiFile } from "react-icons/fi";
+import { FiChevronDown, FiX, FiUploadCloud, FiFile, FiTrash2 } from "react-icons/fi";
 import { BsFiletypeCsv, BsFiletypeXlsx, BsFiletypePdf, BsFiletypeTxt } from "react-icons/bs";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 export default function InputJadwal() {
   const [files, setFiles] = useState<File[]>([]);
@@ -15,6 +16,10 @@ export default function InputJadwal() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [jadwal, setJadwal] = useState<any[]>([]);
+
+  // hapus jadwal
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [activeFilter, setActiveFilter]     = useState<string | null>(null);
   const [selectedDosen, setSelectedDosen]   = useState<string[]>([]);
@@ -46,6 +51,23 @@ export default function InputJadwal() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taId]);
+
+  const handleDeleteJadwal = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeleting(true);
+      await axios.delete(`${API_URL}/scheduled/jadwal/${deleteTarget.id}`);
+      toast.success("Jadwal berhasil dihapus");
+      setDeleteTarget(null);
+      fetchJadwal();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.detail || error?.message || "Gagal menghapus jadwal"
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const handleClick = () => setActiveFilter(null);
@@ -434,20 +456,33 @@ export default function InputJadwal() {
                   )
                   .map((item, index) => (
                     <div
-                      key={index}
-                      className="border rounded-lg p-3 text-xs"
+                      key={item.id ?? index}
+                      className="border rounded-lg p-3 text-xs flex items-start justify-between gap-2 group"
                     >
-                      {item.ruangan} -{" "}
-                      {item.kode_mata_kuliah} -{" "}
-                      {item.mata_kuliah} -{" "}
-                      {item.dosen_utama}
+                      <div className="min-w-0">
+                        {item.ruangan} -{" "}
+                        {item.kode_mata_kuliah} -{" "}
+                        {item.mata_kuliah} -{" "}
+                        {item.dosen_utama}
 
-                      <br />
+                        <br />
 
-                      <span className="text-gray-400">
-                        {item.jam_mulai.slice(0, 5)} -{" "}
-                        {item.jam_selesai.slice(0, 5)}
-                      </span>
+                        <span className="text-gray-400">
+                          {item.jam_mulai.slice(0, 5)} -{" "}
+                          {item.jam_selesai.slice(0, 5)}
+                        </span>
+                      </div>
+
+                      {item.id != null && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(item)}
+                          className="shrink-0 p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
+                          title="Hapus jadwal ini"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   ))}
 
@@ -458,6 +493,20 @@ export default function InputJadwal() {
         </div>
 
       </div>
+
+      {/* Konfirmasi hapus jadwal */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Hapus Jadwal"
+        message={
+          deleteTarget
+            ? `Yakin ingin menghapus jadwal ${deleteTarget.kode_mata_kuliah} - ${deleteTarget.mata_kuliah} (${deleteTarget.kelas})? Tindakan ini tidak bisa dibatalkan.`
+            : ""
+        }
+        confirmLabel={deleting ? "Menghapus..." : "Ya, Hapus"}
+        onConfirm={handleDeleteJadwal}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
     </div>
   );

@@ -83,8 +83,9 @@ export default function AnomaliTable() {
           <p className="text-xs text-gray-400">Semua pertemuan sesuai RPS</p>
         </div>
       ) : (
-        <div className="max-h-80 overflow-y-auto -mx-1 px-1">
-          <table className="w-full text-sm">
+        <>
+          <div className="max-h-80 overflow-y-auto -mx-1 px-1">
+            <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-gray-400 border-b border-gray-100">
                 <th className="text-left font-medium pb-2">Kelas / Matkul</th>
@@ -131,20 +132,18 @@ export default function AnomaliTable() {
                       )}
                       {hasMateri(a) && (
                         <span
-                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-600"
                           title={`Kesesuaian materi: ${a.kesesuaian_materi}`}
                         >
-                          <FiBookOpen size={11} />
-                          Materi
+                          <FiBookOpen size={13} />
                         </span>
                       )}
                       {hasMateriSebagian(a) && (
                         <span
-                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-600"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-50 text-orange-500"
                           title={`Kesesuaian materi: ${a.kesesuaian_materi}`}
                         >
-                          <FiBookOpen size={11} />
-                          Sebagian
+                          <FiBookOpen size={13} />
                         </span>
                       )}
                     </div>
@@ -152,8 +151,25 @@ export default function AnomaliTable() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+
+          {/* Keterangan warna ikon materi — di luar area scroll, selalu terlihat */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-50 text-orange-500">
+                <FiBookOpen size={11} />
+              </span>
+              Materi sebagian sesuai
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-600">
+                <FiBookOpen size={11} />
+              </span>
+              Materi tidak sesuai
+            </span>
+          </div>
+        </>
       )}
     </div>
   );

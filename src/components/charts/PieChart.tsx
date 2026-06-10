@@ -132,7 +132,7 @@ export default function ChartPie({
           onChange={setFilterDosen}
           options={dosenOpts.map<FilterOption>((d) => ({
             value: d.kode,
-            label: d.nama || d.kode,
+            label: d.kode,
           }))}
         />
 
