@@ -1,32 +1,53 @@
+import { useEffect, useState, useCallback } from "react";
 import { FiClock } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../auth/useAuth";
-import { calculateMingguKe, isSkipWeek } from "../lib/semester";
 
 /**
  * Indikator "Minggu ke-" di navbar, di samping Tahun Ajaran Switcher.
  *
- * - Menampilkan minggu perkuliahan saat ini (dihitung dari tanggal hari ini).
+ * Sumber data: backend `/pertemuan/config` (minggu_berjalan) — SAMA dengan
+ * halaman Pengaturan Pertemuan, agar angkanya konsisten.
+ *
  * - Untuk admin: bisa diklik → menuju halaman Pengaturan Pertemuan.
- * - Untuk non-admin: hanya tampil (tidak bisa diklik), karena halaman
- *   pengaturan + upload kalender akademik khusus admin.
+ * - Untuk non-admin: hanya tampil (tidak bisa diklik).
+ * - Mendengarkan event "pertemuan-config-changed" yang di-dispatch halaman
+ *   pengaturan, sehingga ikut ter-update saat skip/kalender diubah.
  */
 export default function PertemuanIndicator() {
   const { role } = useAuth();
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  // Tanggal lokal hari ini sebagai "YYYY-MM-DD" (hindari pergeseran UTC)
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const minggu = calculateMingguKe(today);
-  const skip = isSkipWeek(today);
+  const [minggu, setMinggu]   = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchConfig = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/pertemuan/config`);
+      setMinggu(res.data?.minggu_berjalan ?? null);
+    } catch {
+      setMinggu(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [API_URL]);
+
+  useEffect(() => {
+    fetchConfig();
+    // Refetch saat config diubah dari halaman Pengaturan Pertemuan
+    const handler = () => fetchConfig();
+    window.addEventListener("pertemuan-config-changed", handler);
+    return () => window.removeEventListener("pertemuan-config-changed", handler);
+  }, [fetchConfig]);
 
   // Label tampilan
-  const label = skip
-    ? "Minggu SKIP"
+  const label = loading
+    ? "Minggu ke -"
     : minggu !== null
     ? `Minggu ke-${minggu}`
-    : "Minggu ke -";
+    : "Di luar jadwal";
 
   const isAdmin = role === "admin";
 

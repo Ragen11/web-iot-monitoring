@@ -5,7 +5,6 @@ import axios from "axios";
 import { SkeletonTable } from "../components/Skeleton";
 import FilterDropdown, { type FilterOption } from "../components/FilterDropdown";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
-import { calculateMingguKe, isSkipWeek } from "../lib/semester";
 
 export default function HasilMonitoring() {
 
@@ -129,16 +128,11 @@ export default function HasilMonitoring() {
   };
 
   // ── Render helpers (no hardcode, handle data kosong) ──────────────────────
-  const renderMinggu = (tanggal: any) => {
-    if (isSkipWeek(tanggal)) {
-      return <span className="text-orange-600 font-medium">SKIP</span>;
-    }
-
-    const mingguKe = calculateMingguKe(tanggal);
-    if (mingguKe === null || mingguKe === undefined) {
+  const renderMinggu = (pertemuan_ke: number | null | undefined) => {
+    if (pertemuan_ke === null || pertemuan_ke === undefined) {
       return <span className="text-gray-300">—</span>;
     }
-    return <span>Minggu {mingguKe}</span>;
+    return <span>Minggu {pertemuan_ke}</span>;
   };
 
   const renderKehadiran = (val: any) => {
@@ -247,7 +241,7 @@ export default function HasilMonitoring() {
                 >
                   <td className="p-3">{item.tanggal}</td>
                   <td className="p-3">{item.jam}</td>
-                  <td className="p-3">{renderMinggu(item.tanggal)}</td>
+                  <td className="p-3">{renderMinggu(item.pertemuan_ke)}</td>
                   <td className="p-3">{item.ruangan}</td>
                   <td className="p-3">{item.matkul}</td>
                   <td className="p-3">{item.kodeDosen}</td>

@@ -42,6 +42,8 @@ export default function PengaturanPertemuan() {
       setSemesterStartDate(res.data.semester_start_date ?? null);
       setSkipWeeks(res.data.skip_dates ?? []);
       setMingguBerjalan(res.data.minggu_berjalan ?? null);
+      // Beri tahu indikator navbar agar ikut sinkron
+      window.dispatchEvent(new Event("pertemuan-config-changed"));
     } catch {
       toast.error("Gagal memuat konfigurasi pertemuan");
     } finally {
