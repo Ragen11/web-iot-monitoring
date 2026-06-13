@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -9,18 +9,9 @@ import {
   FiClock,
   FiPlus,
   FiTrash2,
-  FiRotateCcw,
 } from "react-icons/fi";
 import { BsFiletypePdf } from "react-icons/bs";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
-import {
-  SEMESTER_START_DATE,
-  calculateMingguKe,
-  isSkipWeek,
-  getSkipWeeks,
-  setSkipWeeks as persistSkipWeeks,
-  resetSkipWeeks,
-} from "../lib/semester";
 
 export default function PengaturanPertemuan() {
   // upload state
@@ -35,50 +26,66 @@ export default function PengaturanPertemuan() {
 
   const API_URL = import.meta.env.VITE_API_URL;
   const { selected, aktif } = useTahunAjaran();
-  const taAktifId = aktif?.id;
 
-  // Daftar minggu skip (manual) — sumber kebenaran untuk perhitungan minggu
-  const [skipWeeks, setSkipWeeksState] = useState<string[]>(() => getSkipWeeks());
-  const [newSkip, setNewSkip]          = useState<string>("");
+  // ── Config dari BE ─────────────────────────────────────────────────────────
+  const [semesterStartDate, setSemesterStartDate] = useState<string | null>(null);
+  const [skipWeeks, setSkipWeeks]                 = useState<string[]>([]);
+  const [mingguBerjalan, setMingguBerjalan]       = useState<number | null>(null);
+  const [configLoading, setConfigLoading]         = useState(true);
+  const [skipLoading, setSkipLoading]             = useState(false);
+  const [newSkip, setNewSkip]                     = useState<string>("");
 
-  // Info minggu saat ini. calculateMingguKe/isSkipWeek membaca skip weeks dari
-  // localStorage; karena state skipWeeks dipakai di render, setiap perubahan
-  // daftar skip otomatis me-recompute nilai-nilai ini.
-  const now    = new Date();
-  const today  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const minggu = calculateMingguKe(today);
-  const skip   = isSkipWeek(today);
-
-  const handleAddSkip = () => {
-    if (!newSkip) {
-      toast.error("Pilih tanggal minggu skip terlebih dahulu");
-      return;
+  const fetchConfig = useCallback(async () => {
+    setConfigLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/pertemuan/config`);
+      setSemesterStartDate(res.data.semester_start_date ?? null);
+      setSkipWeeks(res.data.skip_dates ?? []);
+      setMingguBerjalan(res.data.minggu_berjalan ?? null);
+    } catch {
+      toast.error("Gagal memuat konfigurasi pertemuan");
+    } finally {
+      setConfigLoading(false);
     }
-    if (skipWeeks.includes(newSkip)) {
-      toast.error("Tanggal tersebut sudah ada di daftar skip");
-      return;
+  }, [API_URL]);
+
+  useEffect(() => {
+    fetchConfig();
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [fetchConfig]);
+
+  const handleAddSkip = async () => {
+    if (!newSkip) { toast.error("Pilih tanggal minggu skip terlebih dahulu"); return; }
+    setSkipLoading(true);
+    try {
+      await axios.post(`${API_URL}/pertemuan/skip-dates`, { tanggal: newSkip });
+      toast.success("Minggu skip ditambahkan");
+      setNewSkip("");
+      await fetchConfig();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Gagal menambahkan minggu skip");
+    } finally {
+      setSkipLoading(false);
     }
-    const updated = persistSkipWeeks([...skipWeeks, newSkip]);
-    setSkipWeeksState(updated);
-    setNewSkip("");
-    toast.success("Minggu skip ditambahkan");
   };
 
-  const handleRemoveSkip = (date: string) => {
-    const updated = persistSkipWeeks(skipWeeks.filter((d) => d !== date));
-    setSkipWeeksState(updated);
-    toast.success("Minggu skip dihapus");
+  const handleRemoveSkip = async (tanggal: string) => {
+    setSkipLoading(true);
+    try {
+      await axios.delete(`${API_URL}/pertemuan/skip-dates/${tanggal}`);
+      toast.success("Minggu skip dihapus");
+      await fetchConfig();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Gagal menghapus minggu skip");
+    } finally {
+      setSkipLoading(false);
+    }
   };
 
-  const handleResetSkip = () => {
-    const defaults = resetSkipWeeks();
-    setSkipWeeksState(defaults);
-    toast.success("Minggu skip dikembalikan ke default");
-  };
-  const mingguLabel = skip
-    ? "Minggu SKIP"
-    : minggu !== null
-    ? `Minggu ke-${minggu}`
+  const mingguLabel = configLoading
+    ? "Memuat..."
+    : mingguBerjalan !== null
+    ? `Minggu ke-${mingguBerjalan}`
     : "Di luar jadwal perkuliahan";
 
   const fmtTanggal = (val: string) =>
@@ -87,12 +94,6 @@ export default function PengaturanPertemuan() {
       month: "long",
       year: "numeric",
     });
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   // ── FILE HANDLING ───────────────────────────────────────────
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +139,6 @@ export default function PengaturanPertemuan() {
 
     const formData = new FormData();
     formData.append("file", file);
-    if (taAktifId) formData.append("tahun_ajaran_id", taAktifId);
 
     try {
       setLoading(true);
@@ -158,14 +158,14 @@ export default function PengaturanPertemuan() {
         }
       );
 
-      console.log("UPLOAD KALENDER:", response.data);
       toast.success(response.data?.message || "Upload kalender akademik berhasil!");
 
-      // reset upload
+      // reset upload & refresh config dari DB
       setFiles([]);
       setProgress(0);
       setFileReadProgress(0);
       setFileReady(false);
+      await fetchConfig();
     } catch (error: any) {
       console.error("UPLOAD ERROR:", error);
       const message =
@@ -215,7 +215,7 @@ export default function PengaturanPertemuan() {
           <div className="flex justify-between py-2 border-b border-gray-100">
             <span className="text-gray-500">Awal semester</span>
             <span className="font-medium text-gray-700">
-              {fmtTanggal(SEMESTER_START_DATE)}
+              {semesterStartDate ? fmtTanggal(semesterStartDate) : "Belum dikonfigurasi"}
             </span>
           </div>
           <div className="flex justify-between py-2 border-b border-gray-100">
@@ -228,29 +228,20 @@ export default function PengaturanPertemuan() {
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 mt-4 leading-relaxed">
-          <FiCalendar className="inline mb-0.5 mr-1" size={12} />
-          Saat ini awal semester &amp; minggu libur masih dikonfigurasi statis.
-          Upload kalender akademik di bawah agar sistem dapat menyesuaikan
-          perhitungan minggu secara otomatis.
-        </p>
+        {!semesterStartDate && !configLoading && (
+          <p className="text-xs text-gray-400 mt-4 leading-relaxed">
+            <FiCalendar className="inline mb-0.5 mr-1" size={12} />
+            Belum ada konfigurasi kalender. Upload kalender akademik di bawah
+            agar sistem dapat menghitung minggu perkuliahan secara otomatis.
+          </p>
+        )}
       </div>
 
       {/* INPUT MANUAL MINGGU SKIP */}
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="flex items-center gap-2">
-            <FiCalendar className="text-primary" size={18} />
-            <h2 className="font-semibold text-gray-700">Minggu Skip (Libur)</h2>
-          </div>
-          <button
-            onClick={handleResetSkip}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition"
-            title="Kembalikan ke default"
-          >
-            <FiRotateCcw size={12} />
-            Reset default
-          </button>
+        <div className="flex items-center gap-2 mb-1">
+          <FiCalendar className="text-primary" size={18} />
+          <h2 className="font-semibold text-gray-700">Minggu Skip (Libur)</h2>
         </div>
         <p className="text-xs text-gray-400 mb-4">
           Tambahkan tanggal yang termasuk minggu libur. Pilih tanggal di dalam
@@ -268,7 +259,8 @@ export default function PengaturanPertemuan() {
           />
           <button
             onClick={handleAddSkip}
-            className="flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition"
+            disabled={skipLoading}
+            className="flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50"
           >
             <FiPlus size={15} />
             Tambah
@@ -300,7 +292,8 @@ export default function PengaturanPertemuan() {
                 </div>
                 <button
                   onClick={() => handleRemoveSkip(d)}
-                  className="flex items-center gap-1 text-red-400 hover:text-red-600 transition shrink-0"
+                  disabled={skipLoading}
+                  className="flex items-center gap-1 text-red-400 hover:text-red-600 transition shrink-0 disabled:opacity-50"
                   title="Hapus"
                 >
                   <FiTrash2 size={15} />

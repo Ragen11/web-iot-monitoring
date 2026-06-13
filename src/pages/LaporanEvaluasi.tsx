@@ -53,7 +53,6 @@ type DosenPerforma = {
   performa:                  number | null;
   ketepatan_materi:          number | null;
   ketepatan_waktu_mengajar:  number | null;
-  kehadiran:                 number | null;
 };
 
 // ── Komponen status ketersediaan pertemuan ────────────────────────────────────
@@ -419,7 +418,7 @@ export default function LaporanEvaluasi() {
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
         <h2 className="font-semibold text-gray-700 mb-1">Performa Dosen</h2>
         <p className="text-xs text-gray-400 mb-4">
-          Gabungan berbobot: Ketepatan Materi 50% · Ketepatan Waktu Mengajar 30% · Kehadiran 20%
+          Gabungan berbobot: Ketepatan Materi 50% · Ketepatan Durasi Mengajar 50%
         </p>
 
         <div className="overflow-x-auto">
@@ -459,8 +458,7 @@ export default function LaporanEvaluasi() {
                       className="py-2.5 text-center"
                       title={
                         `Materi ${d.ketepatan_materi ?? "–"}% · ` +
-                        `Waktu Mengajar ${d.ketepatan_waktu_mengajar ?? "–"}% · ` +
-                        `Kehadiran ${d.kehadiran ?? "–"}%`
+                        `Waktu Mengajar ${d.ketepatan_waktu_mengajar ?? "–"}%`
                       }
                     >
                       {pctBadge(d.performa)}
