@@ -7,14 +7,19 @@ import {
   FiFile,
   FiCalendar,
   FiClock,
+  FiPlus,
+  FiTrash2,
+  FiRotateCcw,
 } from "react-icons/fi";
 import { BsFiletypePdf } from "react-icons/bs";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
 import {
   SEMESTER_START_DATE,
-  SKIP_WEEKS,
   calculateMingguKe,
   isSkipWeek,
+  getSkipWeeks,
+  setSkipWeeks as persistSkipWeeks,
+  resetSkipWeeks,
 } from "../lib/semester";
 
 export default function PengaturanPertemuan() {
@@ -32,11 +37,44 @@ export default function PengaturanPertemuan() {
   const { selected, aktif } = useTahunAjaran();
   const taAktifId = aktif?.id;
 
-  // Info minggu saat ini (dihitung dari konfigurasi semester)
+  // Daftar minggu skip (manual) — sumber kebenaran untuk perhitungan minggu
+  const [skipWeeks, setSkipWeeksState] = useState<string[]>(() => getSkipWeeks());
+  const [newSkip, setNewSkip]          = useState<string>("");
+
+  // Info minggu saat ini. calculateMingguKe/isSkipWeek membaca skip weeks dari
+  // localStorage; karena state skipWeeks dipakai di render, setiap perubahan
+  // daftar skip otomatis me-recompute nilai-nilai ini.
   const now    = new Date();
   const today  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const minggu = calculateMingguKe(today);
   const skip   = isSkipWeek(today);
+
+  const handleAddSkip = () => {
+    if (!newSkip) {
+      toast.error("Pilih tanggal minggu skip terlebih dahulu");
+      return;
+    }
+    if (skipWeeks.includes(newSkip)) {
+      toast.error("Tanggal tersebut sudah ada di daftar skip");
+      return;
+    }
+    const updated = persistSkipWeeks([...skipWeeks, newSkip]);
+    setSkipWeeksState(updated);
+    setNewSkip("");
+    toast.success("Minggu skip ditambahkan");
+  };
+
+  const handleRemoveSkip = (date: string) => {
+    const updated = persistSkipWeeks(skipWeeks.filter((d) => d !== date));
+    setSkipWeeksState(updated);
+    toast.success("Minggu skip dihapus");
+  };
+
+  const handleResetSkip = () => {
+    const defaults = resetSkipWeeks();
+    setSkipWeeksState(defaults);
+    toast.success("Minggu skip dikembalikan ke default");
+  };
   const mingguLabel = skip
     ? "Minggu SKIP"
     : minggu !== null
@@ -183,8 +221,8 @@ export default function PengaturanPertemuan() {
           <div className="flex justify-between py-2 border-b border-gray-100">
             <span className="text-gray-500">Minggu libur (skip)</span>
             <span className="font-medium text-gray-700 text-right">
-              {SKIP_WEEKS.length > 0
-                ? SKIP_WEEKS.map((d) => fmtTanggal(d)).join(", ")
+              {skipWeeks.length > 0
+                ? skipWeeks.map((d) => fmtTanggal(d)).join(", ")
                 : "—"}
             </span>
           </div>
@@ -196,6 +234,81 @@ export default function PengaturanPertemuan() {
           Upload kalender akademik di bawah agar sistem dapat menyesuaikan
           perhitungan minggu secara otomatis.
         </p>
+      </div>
+
+      {/* INPUT MANUAL MINGGU SKIP */}
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <FiCalendar className="text-primary" size={18} />
+            <h2 className="font-semibold text-gray-700">Minggu Skip (Libur)</h2>
+          </div>
+          <button
+            onClick={handleResetSkip}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50 transition"
+            title="Kembalikan ke default"
+          >
+            <FiRotateCcw size={12} />
+            Reset default
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">
+          Tambahkan tanggal yang termasuk minggu libur. Pilih tanggal di dalam
+          minggu yang diliburkan — minggu tersebut tidak dihitung dalam urutan
+          pertemuan.
+        </p>
+
+        {/* Form tambah */}
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <input
+            type="date"
+            value={newSkip}
+            onChange={(e) => setNewSkip(e.target.value)}
+            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 outline-none focus:border-primary transition"
+          />
+          <button
+            onClick={handleAddSkip}
+            className="flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition"
+          >
+            <FiPlus size={15} />
+            Tambah
+          </button>
+        </div>
+
+        {/* Daftar minggu skip */}
+        {skipWeeks.length === 0 ? (
+          <p className="text-sm text-gray-400">
+            Belum ada minggu skip. Semua minggu dihitung berurutan.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {skipWeeks.map((d) => (
+              <li
+                key={d}
+                className="flex items-center justify-between gap-3 border border-gray-100 rounded-xl px-4 py-2.5"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium shrink-0">
+                    SKIP
+                  </span>
+                  <span className="text-sm text-gray-700 truncate">
+                    {fmtTanggal(d)}
+                  </span>
+                  <span className="text-xs text-gray-400 font-mono shrink-0">
+                    ({d})
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleRemoveSkip(d)}
+                  className="flex items-center gap-1 text-red-400 hover:text-red-600 transition shrink-0"
+                  title="Hapus"
+                >
+                  <FiTrash2 size={15} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* UPLOAD KALENDER AKADEMIK */}

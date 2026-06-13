@@ -2,7 +2,38 @@
 
 // Semester configuration
 export const SEMESTER_START_DATE = "2026-02-23";
-export const SKIP_WEEKS = ["2026-03-16", "2026-05-27"];
+
+// Default minggu skip (libur) — dipakai bila admin belum mengatur manual
+export const DEFAULT_SKIP_WEEKS = ["2026-03-16", "2026-05-27"];
+
+const SKIP_WEEKS_STORAGE_KEY = "skipWeeks";
+
+// Ambil daftar minggu skip: hasil input manual (localStorage) > default
+export const getSkipWeeks = (): string[] => {
+  try {
+    const raw = localStorage.getItem(SKIP_WEEKS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter((d) => typeof d === "string");
+    }
+  } catch (err) {
+    console.error("[semester] getSkipWeeks error:", err);
+  }
+  return DEFAULT_SKIP_WEEKS;
+};
+
+// Simpan daftar minggu skip (manual). Normalisasi: unik + urut menaik.
+export const setSkipWeeks = (weeks: string[]): string[] => {
+  const normalized = [...new Set(weeks.filter(Boolean))].sort();
+  localStorage.setItem(SKIP_WEEKS_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+};
+
+// Kembalikan ke nilai default (hapus override manual)
+export const resetSkipWeeks = (): string[] => {
+  localStorage.removeItem(SKIP_WEEKS_STORAGE_KEY);
+  return DEFAULT_SKIP_WEEKS;
+};
 
 // Hitung minggu ke berdasarkan tanggal
 export const calculateMingguKe = (tanggal: string): number | null => {
@@ -23,7 +54,7 @@ export const calculateMingguKe = (tanggal: string): number | null => {
   let mingguKe = weekIndex + 1;
 
   // Hitung berapa banyak skip weeks yang ada SEBELUM week ini
-  const skipWeeksBeforeThisWeek = SKIP_WEEKS.filter((skipDate) => {
+  const skipWeeksBeforeThisWeek = getSkipWeeks().filter((skipDate) => {
     const skipDateObj = new Date(skipDate);
     skipDateObj.setHours(0, 0, 0, 0);
     const skipWeekIndex = Math.floor((skipDateObj.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
@@ -54,8 +85,8 @@ export const isSkipWeek = (tanggal: string): boolean => {
   const weekStartDate = new Date(startDate);
   weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
 
-  // Cek apakah start date of this week ada di SKIP_WEEKS
-  return SKIP_WEEKS.some((skipDate) => {
+  // Cek apakah start date of this week ada di daftar skip
+  return getSkipWeeks().some((skipDate) => {
     const skip = new Date(skipDate);
     skip.setHours(0, 0, 0, 0);
     return weekStartDate.getTime() === skip.getTime();
