@@ -10,6 +10,7 @@ import InputRPS from "./pages/InputRPS";
 import DetailMonitoring from "./pages/DetailMonitoring";
 import Setting from "./pages/Setting";
 import TahunAjaran from "./pages/TahunAjaran";
+import PengaturanPertemuan from "./pages/PengaturanPertemuan";
 
 import { AuthProvider } from "./auth/AuthContext";
 import { TahunAjaranProvider } from "./context/TahunAjaranContext";
@@ -61,6 +62,14 @@ function App() {
               element={
                 <AdminRoute>
                   <TahunAjaran />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="pengaturan-pertemuan"
+              element={
+                <AdminRoute>
+                  <PengaturanPertemuan />
                 </AdminRoute>
               }
             />

@@ -57,7 +57,7 @@ export default function AnomaliTable() {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <FiAlertTriangle className="text-amber-500" />
-          <h2 className="text-sm font-semibold text-gray-700">Deteksi Anomali</h2>
+          <h2 className="text-sm font-semibold text-gray-700">Kesesuaian</h2>
         </div>
         {!loading && data.length > 0 && (
           <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">

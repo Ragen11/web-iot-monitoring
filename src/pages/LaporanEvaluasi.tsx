@@ -360,7 +360,7 @@ export default function LaporanEvaluasi() {
                 <th className="pb-2 font-medium">Kelas</th>
                 <th className="pb-2 font-medium">Nama Dosen</th>
                 <th className="pb-2 font-medium text-center">Ketepatan Materi</th>
-                <th className="pb-2 font-medium text-center">Ketepatan Waktu Mengajar</th>
+                <th className="pb-2 font-medium text-center">Ketepatan Durasi Mengajar</th>
               </tr>
             </thead>
             <tbody>
