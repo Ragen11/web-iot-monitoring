@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { FiAlertTriangle, FiCheckCircle, FiClock, FiBookOpen } from "react-icons/fi";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
-import { calculateMingguKe } from "../lib/semester";
 
 type Anomali = {
   report_id: number;
+  pertemuan_ke?: number | null;
   tanggal: string;
   jam?: string;
   ruangan?: string;
@@ -98,17 +98,14 @@ export default function AnomaliTable() {
                   {/* Matkul + meta */}
                   <td className="py-2 pr-2 align-top">
                     <div className="flex items-center gap-1.5">
-                      {(() => {
-                        const minggu = calculateMingguKe(a.tanggal);
-                        return minggu !== null ? (
-                          <span
-                            className="shrink-0 text-[10px] font-semibold text-primary bg-[#fdf0f0] px-1.5 py-0.5 rounded"
-                            title={`Minggu ke-${minggu}`}
-                          >
-                            M{minggu}
-                          </span>
-                        ) : null;
-                      })()}
+                      {a.pertemuan_ke != null ? (
+                        <span
+                          className="shrink-0 text-[10px] font-semibold text-primary bg-[#fdf0f0] px-1.5 py-0.5 rounded"
+                          title={`Minggu ke-${a.pertemuan_ke}`}
+                        >
+                          M{a.pertemuan_ke}
+                        </span>
+                      ) : null}
                       <p className="font-medium text-gray-800 leading-tight truncate max-w-[130px]" title={a.matkul}>
                         {a.matkul}
                       </p>

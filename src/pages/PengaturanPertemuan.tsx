@@ -38,18 +38,18 @@ export default function PengaturanPertemuan() {
   const fetchConfig = useCallback(async () => {
     setConfigLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/pertemuan/config`);
+      const params: any = {};
+      if (selected?.id) params.tahun_ajaran_id = selected.id;
+      const res = await axios.get(`${API_URL}/pertemuan/config`, { params });
       setSemesterStartDate(res.data.semester_start_date ?? null);
       setSkipWeeks(res.data.skip_dates ?? []);
       setMingguBerjalan(res.data.minggu_berjalan ?? null);
-      // Beri tahu indikator navbar agar ikut sinkron
-      window.dispatchEvent(new Event("pertemuan-config-changed"));
     } catch {
       toast.error("Gagal memuat konfigurasi pertemuan");
     } finally {
       setConfigLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, selected?.id]);
 
   useEffect(() => {
     fetchConfig();
@@ -60,7 +60,10 @@ export default function PengaturanPertemuan() {
     if (!newSkip) { toast.error("Pilih tanggal minggu skip terlebih dahulu"); return; }
     setSkipLoading(true);
     try {
-      await axios.post(`${API_URL}/pertemuan/skip-dates`, { tanggal: newSkip });
+      await axios.post(`${API_URL}/pertemuan/skip-dates`, {
+        tanggal: newSkip,
+        tahun_ajaran_id: selected?.id ?? undefined,
+      });
       toast.success("Minggu skip ditambahkan");
       setNewSkip("");
       await fetchConfig();
@@ -74,7 +77,9 @@ export default function PengaturanPertemuan() {
   const handleRemoveSkip = async (tanggal: string) => {
     setSkipLoading(true);
     try {
-      await axios.delete(`${API_URL}/pertemuan/skip-dates/${tanggal}`);
+      await axios.delete(`${API_URL}/pertemuan/skip-dates/${tanggal}`, {
+        params: { tahun_ajaran_id: selected?.id ?? undefined },
+      });
       toast.success("Minggu skip dihapus");
       await fetchConfig();
     } catch (err: any) {

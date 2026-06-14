@@ -4,7 +4,6 @@ import axios from "axios";
 import { toast } from "sonner";
 import { FiChevronRight, FiArrowLeft, FiMaximize2 } from "react-icons/fi";
 import { supabase } from "../lib/supabase";
-import { calculateMingguKe, isSkipWeek } from "../lib/semester";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -434,7 +433,7 @@ export default function DetailMonitoring() {
               <p>: {data.tanggal || "-"}</p>
 
               <p>Minggu</p>
-              <p>: {isSkipWeek(data.tanggal) ? "SKIP" : (calculateMingguKe(data.tanggal) != null ? `Minggu ${calculateMingguKe(data.tanggal)}` : "-")}</p>
+              <p>: {data.pertemuan_ke != null ? `Minggu ${data.pertemuan_ke}` : "-"}</p>
 
               <p>Jam</p>
               <p>: {data.jamDisplay || data.jam || "-"}</p>
