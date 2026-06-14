@@ -83,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user?.email) {
         const email = session.user.email;
         // Defer fetch keluar dari callback agar tidak deadlock dengan internal lock Supabase
+        setLoading(true);
         setTimeout(() => fetchProfile(email), 0);
       } else {
         setUser(null);
