@@ -102,29 +102,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 🔐 LOGIN
   const login = async (username: string, password: string) => {
 
-    // cari email dari username
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("email, username, role")
-      .eq("username", username)
-      .single();
+    // cari email dari username via RPC (anon-safe, tidak expose tabel profiles)
+    const { data: email, error: rpcError } = await supabase
+      .rpc("get_email_by_username", { p_username: username });
 
-    if (error || !profile) {
+    if (rpcError || !email) {
       return false;
     }
 
-    // login ke supabase
+    // login ke supabase dengan email yang didapat
     const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: profile.email,
+      email,
       password,
     });
 
     if (loginError) {
       return false;
     }
-
-    setUser(profile.username);
-    setRole(profile.role);
 
     return true;
   };
