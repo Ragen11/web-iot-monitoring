@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("[Auth] State change:", event);
 
       if (session?.user?.email) {
+        if (event === "TOKEN_REFRESHED") return;
         const email = session.user.email;
         // Defer fetch keluar dari callback agar tidak deadlock dengan internal lock Supabase
         setLoading(true);
