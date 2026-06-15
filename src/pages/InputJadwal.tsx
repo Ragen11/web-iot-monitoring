@@ -54,12 +54,16 @@ export default function InputJadwal() {
 
   const handleDeleteJadwal = async () => {
     if (!deleteTarget) return;
+    const id = deleteTarget.id;
     try {
       setDeleting(true);
-      await axios.delete(`${API_URL}/scheduled/jadwal/${deleteTarget.id}`);
+      await axios.delete(`${API_URL}/scheduled/jadwal/${id}`);
       toast.success("Jadwal berhasil dihapus");
       setDeleteTarget(null);
-      fetchJadwal();
+      // Hapus dari state lokal langsung. Backend meng-cache list jadwal (TTL 10
+      // menit) & tidak invalidasi saat delete, jadi refetch bisa mengembalikan
+      // data stale — maka kita filter manual, bukan fetchJadwal().
+      setJadwal((prev) => prev.filter((j) => j.id !== id));
     } catch (error: any) {
       toast.error(
         error?.response?.data?.detail || error?.message || "Gagal menghapus jadwal"
