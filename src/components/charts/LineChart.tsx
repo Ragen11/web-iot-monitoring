@@ -166,9 +166,9 @@ export default function ChartLine() {
               }
             />
 
-            <Line type="natural" dataKey="ceramah"  name="Ceramah"                 stroke="#f87171" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-            <Line type="natural" dataKey="diskusi"  name="Diskusi & Tanya Jawab"   stroke="#60a5fa" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-            <Line type="natural" dataKey="tidakAda" name="Tidak ada pembelajaran"  stroke="#94a3b8" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+            <Line type="linear" dataKey="ceramah"  name="Ceramah"                 stroke="#f87171" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 0, fill: "#f87171" }} activeDot={{ r: 5, strokeWidth: 0 }} />
+            <Line type="linear" dataKey="diskusi"  name="Diskusi & Tanya Jawab"   stroke="#60a5fa" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 0, fill: "#60a5fa" }} activeDot={{ r: 5, strokeWidth: 0 }} />
+            <Line type="linear" dataKey="tidakAda" name="Tidak ada pembelajaran"  stroke="#94a3b8" strokeWidth={2.5} dot={{ r: 3.5, strokeWidth: 0, fill: "#94a3b8" }} activeDot={{ r: 5, strokeWidth: 0 }} />
           </LineChart>
         </ResponsiveContainer>
       ) : (
