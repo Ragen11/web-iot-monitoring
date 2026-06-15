@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 interface AuthContextType {
@@ -16,6 +16,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<string | null>(null);
   const [role, setRole] = useState<"admin" | "user" | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Lacak email yang sudah dimuat agar tidak loading ulang saat tab kembali
+  // fokus (Supabase re-fire SIGNED_IN). null = belum ada sesi yang dimuat.
+  const loadedEmailRef = useRef<string | null>(null);
 
   useEffect(() => {
 
@@ -65,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data) {
           setUser(data.username);
           setRole(data.role);
+          loadedEmailRef.current = email;
           console.log("[Auth] Logged in as:", data.username);
         }
       } catch (err) {
@@ -81,12 +86,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("[Auth] State change:", event);
 
       if (session?.user?.email) {
-        if (event === "TOKEN_REFRESHED") return;
         const email = session.user.email;
+
+        // Abaikan event ulang untuk user yang SAMA (mis. SIGNED_IN/TOKEN_REFRESHED
+        // yang di-fire Supabase saat tab kembali fokus) → tidak ada loading flash.
+        if (event === "TOKEN_REFRESHED") return;
+        if (loadedEmailRef.current === email) return;
+
         // Defer fetch keluar dari callback agar tidak deadlock dengan internal lock Supabase
         setLoading(true);
         setTimeout(() => fetchProfile(email), 0);
       } else {
+        loadedEmailRef.current = null;
         setUser(null);
         setRole(null);
         clearTimeout(safetyTimeout);
