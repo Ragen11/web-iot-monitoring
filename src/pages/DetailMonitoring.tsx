@@ -16,6 +16,16 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Gagal",
 };
 
+// Rapikan label aktivitas dominan dari backend (mis. "DISKUSI & TANYA JAWAB")
+const formatDominant = (raw: any): string => {
+  if (!raw) return "-";
+  const v = String(raw).toUpperCase();
+  if (v.includes("DISKUSI") || v.includes("TANYA")) return "Diskusi & Tanya Jawab";
+  if (v.includes("CERAMAH")) return "Ceramah";
+  if (v.includes("DIAM")) return "Diam";
+  return String(raw);
+};
+
 export default function DetailMonitoring() {
   const { state } = useLocation();
   const { id }    = useParams();
@@ -481,16 +491,15 @@ export default function DetailMonitoring() {
               <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                 <span className="text-sm text-gray-500">Aktivitas Dominan</span>
                 <span className="text-sm font-semibold text-primary">
-                  {data.aktivitasDetail.dominant || "-"}
+                  {formatDominant(data.aktivitasDetail.dominant)}
                 </span>
               </div>
 
               {/* Breakdown per aktivitas */}
               {[
-                { label: "Ceramah",     value: data.aktivitasDetail.ceramah,    color: "bg-purple-500" },
-                { label: "Diskusi",     value: data.aktivitasDetail.diskusi,    color: "bg-red-400" },
-                { label: "Tanya Jawab", value: data.aktivitasDetail.tanyaJawab, color: "bg-blue-400" },
-                { label: "Diam",        value: data.aktivitasDetail.diam,       color: "bg-gray-400" },
+                { label: "Ceramah",               value: data.aktivitasDetail.ceramah, color: "bg-purple-500" },
+                { label: "Diskusi & Tanya Jawab", value: data.aktivitasDetail.diskusi + data.aktivitasDetail.tanyaJawab, color: "bg-red-400" },
+                { label: "Diam",                  value: data.aktivitasDetail.diam,    color: "bg-gray-400" },
               ].map((row) => (
                 <div key={row.label} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">

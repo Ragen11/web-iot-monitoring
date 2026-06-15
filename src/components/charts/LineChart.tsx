@@ -15,16 +15,14 @@ import { useTahunAjaran } from "../../context/TahunAjaranContext";
 type TrendRow = {
   name: string;
   ceramah: number;
-  tanyaJawab: number;
   diskusi: number;
   tidakAda: number;
 };
 
 const LEGENDS = [
-  { key: "ceramah",    label: "Ceramah",               color: "#f87171" },
-  { key: "tanyaJawab", label: "Tanya Jawab",           color: "#34d399" },
-  { key: "diskusi",    label: "Diskusi",               color: "#60a5fa" },
-  { key: "tidakAda",   label: "Tidak ada pembelajaran", color: "#94a3b8" },
+  { key: "ceramah",  label: "Ceramah",                color: "#f87171" },
+  { key: "diskusi",  label: "Diskusi & Tanya Jawab",  color: "#60a5fa" },
+  { key: "tidakAda", label: "Tidak ada pembelajaran", color: "#94a3b8" },
 ];
 
 export default function ChartLine() {
@@ -68,13 +66,22 @@ export default function ChartLine() {
     if (taId) params.tahun_ajaran_id = taId;
     axios
       .get(`${API_URL}/aktivitas/trend`, { params })
-      .then((res) => setData(res.data?.days || []))
+      .then((res) => {
+        // Gabung Tanya Jawab + Diskusi → satu kategori "Diskusi & Tanya Jawab"
+        const days: TrendRow[] = (res.data?.days || []).map((d: any) => ({
+          name:     d.name,
+          ceramah:  d.ceramah ?? 0,
+          diskusi:  (d.diskusi ?? 0) + (d.tanyaJawab ?? 0),
+          tidakAda: d.tidakAda ?? 0,
+        }));
+        setData(days);
+      })
       .catch((err) => console.error("❌ trend error:", err))
       .finally(() => setLoading(false));
   }, [API_URL, selectedMonth, taId]);
 
   const monthOpts: FilterOption[] = months.map((m) => ({ value: m, label: m }));
-  const hasData = data.some((d) => d.ceramah + d.tanyaJawab + d.diskusi + d.tidakAda > 0);
+  const hasData = data.some((d) => d.ceramah + d.diskusi + d.tidakAda > 0);
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow">
@@ -159,10 +166,9 @@ export default function ChartLine() {
               }
             />
 
-            <Line type="natural" dataKey="ceramah"    name="Ceramah"                stroke="#f87171" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-            <Line type="natural" dataKey="tanyaJawab" name="Tanya Jawab"            stroke="#34d399" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-            <Line type="natural" dataKey="diskusi"    name="Diskusi"                stroke="#60a5fa" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
-            <Line type="natural" dataKey="tidakAda"   name="Tidak ada pembelajaran" stroke="#94a3b8" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+            <Line type="natural" dataKey="ceramah"  name="Ceramah"                 stroke="#f87171" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+            <Line type="natural" dataKey="diskusi"  name="Diskusi & Tanya Jawab"   stroke="#60a5fa" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+            <Line type="natural" dataKey="tidakAda" name="Tidak ada pembelajaran"  stroke="#94a3b8" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
           </LineChart>
         </ResponsiveContainer>
       ) : (

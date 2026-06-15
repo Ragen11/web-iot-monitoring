@@ -131,10 +131,9 @@ export default function DetailPieModal({ open, onClose }: Props) {
   }, [open, range, filterDosen, filterKelas, taId, API_URL]);
 
   const summaryData = [
-    { name: "Ceramah",     value: summary?.ceramah_pct     ?? 0, color: "#9F4A4A" },
-    { name: "Tanya Jawab", value: summary?.tanya_jawab_pct ?? 0, color: "#000000" },
-    { name: "Diskusi",     value: summary?.diskusi_pct     ?? 0, color: "#E6C7C7" },
-    { name: "Diam",   value: summary?.diam_pct        ?? 0, color: "#6B7280" },
+    { name: "Ceramah",               value: summary?.ceramah_pct ?? 0, color: "#9F4A4A" },
+    { name: "Diskusi & Tanya Jawab", value: (summary?.diskusi_pct ?? 0) + (summary?.tanya_jawab_pct ?? 0), color: "#E6C7C7" },
+    { name: "Diam",   value: summary?.diam_pct ?? 0, color: "#6B7280" },
   ];
 
   const hasData   = summaryData.some(d => d.value > 0);
@@ -272,8 +271,7 @@ export default function DetailPieModal({ open, onClose }: Props) {
                     <tr className="text-left text-gray-500 text-sm">
                       <th className="pb-3">Mata Kuliah</th>
                       <th className="pb-3">Ceramah</th>
-                      <th className="pb-3">Tanya Jawab</th>
-                      <th className="pb-3">Diskusi</th>
+                      <th className="pb-3">Diskusi &amp; Tanya Jawab</th>
                       <th className="pb-3">Diam</th>
                     </tr>
                   </thead>
@@ -281,7 +279,7 @@ export default function DetailPieModal({ open, onClose }: Props) {
                   <tbody>
                     {perMatkul.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="p-5 text-center text-gray-400 text-sm">
+                        <td colSpan={4} className="p-5 text-center text-gray-400 text-sm">
                           Belum ada data aktivitas.
                         </td>
                       </tr>
@@ -300,11 +298,7 @@ export default function DetailPieModal({ open, onClose }: Props) {
                           </td>
 
                           <td className="p-4">
-                            <ProgressBar value={item.tanya}    color="#000000" />
-                          </td>
-
-                          <td className="p-4">
-                            <ProgressBar value={item.diskusi}  color="#E6C7C7" />
+                            <ProgressBar value={item.diskusi + item.tanya} color="#E6C7C7" />
                           </td>
 
                           <td className="p-4 rounded-r-2xl">

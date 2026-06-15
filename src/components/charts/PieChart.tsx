@@ -30,9 +30,8 @@ export default function ChartPie({
 }: Props) {
 
   const [data, setData] = useState([
-    { name: "Ceramah",                value: 0, color: COLORS.ceramah },
-    { name: "Tanya Jawab",            value: 0, color: COLORS.tanya_jawab },
-    { name: "Diskusi",                value: 0, color: COLORS.diskusi },
+    { name: "Ceramah",               value: 0, color: COLORS.ceramah },
+    { name: "Diskusi & Tanya Jawab", value: 0, color: COLORS.diskusi },
     { name: "Diam", value: 0, color: COLORS.diam },
   ]);
 
@@ -91,10 +90,9 @@ export default function ChartPie({
         const d = res.data || {};
 
         setData([
-          { name: "Ceramah",                value: d.ceramah_pct     ?? 0, color: COLORS.ceramah },
-          { name: "Tanya Jawab",            value: d.tanya_jawab_pct ?? 0, color: COLORS.tanya_jawab },
-          { name: "Diskusi",                value: d.diskusi_pct     ?? 0, color: COLORS.diskusi },
-          { name: "Diam", value: d.diam_pct        ?? 0, color: COLORS.diam },
+          { name: "Ceramah",               value: d.ceramah_pct ?? 0, color: COLORS.ceramah },
+          { name: "Diskusi & Tanya Jawab", value: (d.diskusi_pct ?? 0) + (d.tanya_jawab_pct ?? 0), color: COLORS.diskusi },
+          { name: "Diam", value: d.diam_pct ?? 0, color: COLORS.diam },
         ]);
       } catch (err) {
         console.error("❌ Gagal fetch aktivitas/summary:", err);
