@@ -13,6 +13,9 @@ import {
 import { BsFiletypePdf } from "react-icons/bs";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
 
+// Batas ukuran file upload: 1 MB
+const MAX_FILE_BYTES = 1 * 1024 * 1024;
+
 export default function PengaturanPertemuan() {
   // upload state
   const [files, setFiles]                       = useState<File[]>([]);
@@ -106,8 +109,14 @@ export default function PengaturanPertemuan() {
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
-    const selectedFiles = Array.from(e.target.files);
-    setFiles([selectedFiles[0]]);
+    const picked = Array.from(e.target.files)[0];
+    if (!picked) return;
+    if (picked.size > MAX_FILE_BYTES) {
+      toast.error("Ukuran file melebihi 1 MB");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setFiles([picked]);
     setFileReadProgress(0);
     setFileReady(false);
 
@@ -326,7 +335,7 @@ export default function PengaturanPertemuan() {
           </span>
 
           <span className="text-xs text-gray-400">
-            Max 10 MB files are allowed
+            Max 1 MB files are allowed
           </span>
 
           <input

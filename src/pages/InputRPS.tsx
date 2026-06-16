@@ -12,12 +12,14 @@ import {
 } from "react-icons/fi";
 import ConfirmDialog from "../components/ConfirmDialog";
 import {
-  BsFiletypeCsv,
   BsFiletypeXlsx,
   BsFiletypePdf,
   BsFiletypeTxt,
 } from "react-icons/bs";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
+
+// Batas ukuran file upload: 1 MB
+const MAX_FILE_BYTES = 1 * 1024 * 1024;
 
 type RPSItem = {
   id?: number;
@@ -130,8 +132,14 @@ export default function InputRPS() {
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
-    const selectedFiles = Array.from(e.target.files);
-    setFiles([selectedFiles[0]]);
+    const picked = Array.from(e.target.files)[0];
+    if (!picked) return;
+    if (picked.size > MAX_FILE_BYTES) {
+      toast.error("Ukuran file melebihi 1 MB");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setFiles([picked]);
     setFileReadProgress(0);
     setFileReady(false);
 
@@ -164,17 +172,10 @@ export default function InputRPS() {
 
     const file = files[0];
 
-    const lower = file.name.toLowerCase();
-    const isCsv = lower.endsWith(".csv");
-    const isPdf = lower.endsWith(".pdf");
-
-    if (!isCsv && !isPdf) {
-      toast.error("File harus format CSV atau PDF!");
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("File harus format PDF!");
       return;
     }
-
-    // Pilih endpoint sesuai tipe file
-    const endpoint = isPdf ? "/rps/upload-pdf" : "/rps/upload-csv";
 
     const formData = new FormData();
     formData.append("file", file);
@@ -185,7 +186,7 @@ export default function InputRPS() {
       setProgress(0);
 
       const response = await axios.post(
-        `${API_URL}${endpoint}`,
+        `${API_URL}/rps/upload-pdf`,
         formData,
         {
           onUploadProgress: (progressEvent) => {
@@ -200,14 +201,8 @@ export default function InputRPS() {
 
       console.log("UPLOAD RPS:", response.data);
 
-      const { message, skipped, errors: rowErrors } = response.data || {};
+      const { message } = response.data || {};
       toast.success(message || "Upload RPS berhasil!");
-
-      // tampilkan warning kalau ada baris yg di-skip
-      if (skipped && skipped > 0 && Array.isArray(rowErrors)) {
-        console.warn("⚠️ Baris yang di-skip:", rowErrors);
-        toast.warning(`${skipped} baris di-skip. Cek console untuk detail.`);
-      }
 
       // reset upload
       setFiles([]);
@@ -233,7 +228,6 @@ export default function InputRPS() {
 
   const getFileIcon = (filename: string) => {
     const ext = filename.split(".").pop()?.toLowerCase();
-    if (ext === "csv") return <BsFiletypeCsv size={40} className="text-green-600" />;
     if (ext === "xlsx" || ext === "xls") return <BsFiletypeXlsx size={40} className="text-emerald-600" />;
     if (ext === "pdf") return <BsFiletypePdf size={40} className="text-red-500" />;
     if (ext === "txt") return <BsFiletypeTxt size={40} className="text-gray-500" />;
@@ -249,7 +243,7 @@ export default function InputRPS() {
         <h2 className="font-semibold mb-2">Media Upload</h2>
 
         <p className="text-sm text-gray-400 mb-4">
-          Upload data RPS dalam format CSV atau PDF. Maksimal 1 file.
+          Upload data RPS dalam format PDF. Maksimal 1 file.
         </p>
 
         <label className="border-2 border-dashed border-blue-300 rounded-xl p-6 sm:p-10 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 transition">
@@ -260,13 +254,13 @@ export default function InputRPS() {
           </span>
 
           <span className="text-xs text-gray-400">
-            Max 10 MB files are allowed
+            Max 1 MB files are allowed
           </span>
 
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,.pdf"
+            accept=".pdf"
             className="hidden"
             onChange={handleUpload}
           />
@@ -336,11 +330,8 @@ export default function InputRPS() {
         )}
 
         <p className="text-xs text-gray-400 mt-3">
-          Mendukung file .csv dan .pdf. Untuk CSV, format kolom:{" "}
-          <code className="text-gray-500">
-            kode_matkul, pertemuan_ke, materi_pembelajaran, pengalaman_pembelajaran_mahasiswa
-          </code>
-          . Untuk PDF, sistem akan mengekstrak data RPS secara otomatis.
+          Hanya mendukung file .pdf. Sistem akan mengekstrak data RPS secara
+          otomatis dari PDF.
         </p>
 
         <button
