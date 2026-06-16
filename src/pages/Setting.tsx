@@ -47,7 +47,7 @@ export default function Setting() {
                   : "bg-blue-100 text-blue-600"
               }`}
             >
-              {role === "admin" ? "Administrator" : "Prodi"}
+              {role === "admin" ? "admin" : "user"}
             </span>
           </div>
         </div>
