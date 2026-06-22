@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { FiChevronDown, FiX, FiUploadCloud, FiFile, FiTrash2 } from "react-icons/fi";
+import { FiChevronDown, FiX, FiUploadCloud, FiFile, FiTrash2, FiDownload } from "react-icons/fi";
 import { BsFiletypeCsv, BsFiletypeXlsx, BsFiletypePdf, BsFiletypeTxt } from "react-icons/bs";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -222,8 +222,11 @@ export default function InputJadwal() {
 
       <h1 className="text-xl font-semibold">Input Jadwal</h1>
 
+      {/* UPLOAD + CONTOH TEMPLATE — sebelahan (kiri upload, kanan contoh) */}
+      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+
       {/* UPLOAD CARD */}
-      <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6 flex-1 min-w-0 flex flex-col">
 
         <h2 className="font-semibold mb-2">
           Media Upload
@@ -234,7 +237,7 @@ export default function InputJadwal() {
           to 1 file max
         </p>
 
-        <label className="border-2 border-dashed border-blue-300 rounded-xl p-6 sm:p-10 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 transition">
+        <label className="border-2 border-dashed border-blue-300 rounded-xl p-6 sm:p-10 flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-blue-50 transition">
 
           <FiUploadCloud size={48} className="text-blue-400" />
 
@@ -323,7 +326,7 @@ export default function InputJadwal() {
         <button
           onClick={handleSubmit}
           disabled={!fileReady || loading}
-          className={`mt-4 px-6 py-2 rounded-lg text-white transition ${
+          className={`mt-4 self-start px-6 py-2 rounded-lg text-white transition ${
             !fileReady || loading
               ? "bg-gray-300 cursor-not-allowed"
               : "bg-primary hover:bg-primary-dark"
@@ -332,6 +335,34 @@ export default function InputJadwal() {
           {loading ? "Uploading..." : "Submit"}
         </button>
       </div>
+
+      {/* CONTOH TEMPLATE */}
+      <div className="bg-white rounded-2xl shadow p-4 sm:p-6 flex-1 min-w-0">
+        <h2 className="font-semibold mb-1">Contoh Template</h2>
+        <p className="text-sm text-gray-400 mb-4">
+          Pastikan kolom file Excel sesuai format berikut: <span className="font-medium text-gray-500">Hari, Shift, Ruangan, Kode Mata Kuliah, Nama Mata Kuliah, Kelas, Dosen, Jenis</span>.
+        </p>
+
+        <img
+          src="/template-jadwal.png"
+          alt="Contoh template jadwal"
+          className="block w-full max-w-xl mx-auto rounded-xl border border-gray-100 object-contain"
+          onError={(e) => { e.currentTarget.style.display = "none"; }}
+        />
+
+        <div className="text-center">
+          <a
+            href="/template-jadwal.xlsx"
+            download="template-jadwal.xlsx"
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary-dark transition"
+          >
+            <FiDownload size={16} />
+            Download Template (.xlsx)
+          </a>
+        </div>
+      </div>
+
+      </div>{/* end flex: upload + contoh template */}
 
       {/* JADWAL GRID */}
       <div>
