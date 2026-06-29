@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import {
   useNavigate,
   useLocation,
@@ -18,6 +19,23 @@ import { useAuth } from "../auth/useAuth";
 // Konfigurasi rate limit
 const MAX_ATTEMPTS   = 5;
 const LOCK_DURATION  = 30; // detik
+const STORAGE_KEY    = "login_lock";
+
+// Opsi A — baca kunci tersimpan dari localStorage (tahan refresh)
+const readStoredLock = (): { failedAttempts: number; lockedUntil: number | null } => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { failedAttempts: 0, lockedUntil: null };
+    const v = JSON.parse(raw);
+    const lockedUntil =
+      typeof v?.lockedUntil === "number" && v.lockedUntil > Date.now()
+        ? v.lockedUntil
+        : null;
+    return { failedAttempts: v?.failedAttempts ?? 0, lockedUntil };
+  } catch {
+    return { failedAttempts: 0, lockedUntil: null };
+  }
+};
 
 export default function Login() {
 
@@ -30,10 +48,12 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
 
-  // Rate limit state
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockedUntil, setLockedUntil]       = useState<number | null>(null);
+  // Rate limit state (init dari localStorage — Opsi A)
+  const [failedAttempts, setFailedAttempts] = useState(() => readStoredLock().failedAttempts);
+  const [lockedUntil, setLockedUntil]       = useState<number | null>(() => readStoredLock().lockedUntil);
   const [secondsLeft, setSecondsLeft]       = useState(0);
+
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const { login } = useAuth();
 
@@ -76,6 +96,15 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [lockedUntil]);
 
+  // 💾 Opsi A — simpan kunci ke localStorage agar bertahan saat refresh
+  useEffect(() => {
+    if (lockedUntil || failedAttempts > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ lockedUntil, failedAttempts }));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [lockedUntil, failedAttempts]);
+
   const isLocked = !!lockedUntil && lockedUntil > Date.now();
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -91,33 +120,50 @@ export default function Login() {
     setError("");
     setLoading(true);
 
+    const uname = username.trim();
+    const lockUrl = `${API_URL}/auth/login-lock/${encodeURIComponent(uname)}`;
+
     const success = await login(username, password);
 
     setLoading(false);
 
     if (success) {
-      // Reset rate limit saat sukses
+      // Reset (lokal + server di latar belakang)
       setFailedAttempts(0);
       setLockedUntil(null);
+      axios.post(lockUrl, { success: true }).catch(() => {});
       navigate("/");
-    } else {
-      const newAttempts = failedAttempts + 1;
-      setFailedAttempts(newAttempts);
-
-      if (newAttempts >= MAX_ATTEMPTS) {
-        // Trigger lockout
-        setLockedUntil(Date.now() + LOCK_DURATION * 1000);
-        setPassword(""); // bersihkan password biar tidak terlihat
-        setError(
-          `Terlalu banyak percobaan gagal. Coba lagi dalam ${LOCK_DURATION} detik.`
-        );
-      } else {
-        const remaining = MAX_ATTEMPTS - newAttempts;
-        setError(
-          `Username atau password salah. Sisa percobaan: ${remaining}`
-        );
-      }
+      return;
     }
+
+    // ── GAGAL — tampilkan pesan SEGERA dari hitungan lokal (tanpa nunggu server) ──
+    const newAttempts = failedAttempts + 1;
+    setFailedAttempts(newAttempts);
+    if (newAttempts >= MAX_ATTEMPTS) {
+      setLockedUntil(Date.now() + LOCK_DURATION * 1000);
+      setPassword("");
+      setError(`Terlalu banyak percobaan gagal. Coba lagi dalam ${LOCK_DURATION} detik.`);
+    } else {
+      setError(`Username atau password salah. Sisa percobaan: ${MAX_ATTEMPTS - newAttempts}`);
+    }
+
+    // ── Opsi B (server) di LATAR BELAKANG — tidak menahan UI.
+    // Server tetap otoritatif: kalau username sudah terkunci (mis. lintas
+    // perangkat), terapkan kuncinya begitu respons tiba.
+    axios
+      .post(lockUrl, { success: false })
+      .then((res) => {
+        if (res.data?.locked) {
+          const sl = res.data.seconds_left ?? LOCK_DURATION;
+          setFailedAttempts(MAX_ATTEMPTS);
+          setLockedUntil(Date.now() + sl * 1000);
+          setPassword("");
+          setError(`Terlalu banyak percobaan gagal. Coba lagi dalam ${sl} detik.`);
+        } else if (typeof res.data?.attempts_left === "number") {
+          setFailedAttempts(MAX_ATTEMPTS - res.data.attempts_left);
+        }
+      })
+      .catch(() => {});
   };
 
   return (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { FiChevronDown, FiX, FiUploadCloud, FiFile, FiTrash2, FiDownload } from "react-icons/fi";
+import { FiChevronDown, FiX, FiUploadCloud, FiFile, FiTrash2, FiDownload, FiPlusCircle } from "react-icons/fi";
 import { BsFiletypeCsv, BsFiletypeXlsx, BsFiletypePdf, BsFiletypeTxt } from "react-icons/bs";
 import { useTahunAjaran } from "../context/TahunAjaranContext";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -9,7 +9,28 @@ import ConfirmDialog from "../components/ConfirmDialog";
 // Batas ukuran file upload: 1 MB
 const MAX_FILE_BYTES = 1 * 1024 * 1024;
 
+const HARI_OPTIONS = ["SENIN", "SELASA", "RABU", "KAMIS", "JUMAT", "SABTU"];
+
+// State awal form input manual
+const EMPTY_MANUAL = {
+  hari: "SENIN",
+  kode_mata_kuliah: "",
+  mata_kuliah: "",
+  kelas: "",
+  dosen_utama: "",
+  ruangan: "",
+  jam_mulai: "",
+  jam_selesai: "",
+};
+
 export default function InputJadwal() {
+  // Mode kartu kiri: "upload" (Excel) atau "manual" (form satuan)
+  const [mode, setMode] = useState<"upload" | "manual">("upload");
+
+  // Form input manual
+  const [manual, setManual] = useState({ ...EMPTY_MANUAL });
+  const [savingManual, setSavingManual] = useState(false);
+
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -208,6 +229,62 @@ export default function InputJadwal() {
     }
   };
 
+  // ── Input manual: ubah field ──────────────────────────────
+  const updateManual = (field: keyof typeof EMPTY_MANUAL, value: string) => {
+    setManual((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // ── Input manual: submit ──────────────────────────────────
+  const handleManualSubmit = async () => {
+    // Validasi field wajib
+    const required: (keyof typeof EMPTY_MANUAL)[] = [
+      "hari", "kode_mata_kuliah", "mata_kuliah", "kelas",
+      "dosen_utama", "ruangan", "jam_mulai", "jam_selesai",
+    ];
+    const missing = required.filter((f) => !manual[f].trim());
+    if (missing.length > 0) {
+      toast.error("Lengkapi semua field terlebih dahulu");
+      return;
+    }
+    if (manual.jam_selesai <= manual.jam_mulai) {
+      toast.error("Jam selesai harus lebih besar dari jam mulai");
+      return;
+    }
+
+    const payload: any = {
+      ...manual,
+      kode_mata_kuliah: manual.kode_mata_kuliah.trim(),
+      mata_kuliah: manual.mata_kuliah.trim(),
+      kelas: manual.kelas.trim(),
+      dosen_utama: manual.dosen_utama.trim(),
+      ruangan: manual.ruangan.trim(),
+    };
+    // Tag ke TA yang sedang dilihat (fallback ke TA aktif) agar langsung tampil
+    if (taId) payload.tahun_ajaran_id = taId;
+    else if (taAktifId) payload.tahun_ajaran_id = taAktifId;
+
+    try {
+      setSavingManual(true);
+      const res = await axios.post(`${API_URL}/scheduled/jadwal`, payload);
+      toast.success("Jadwal berhasil ditambahkan");
+
+      // Tambahkan ke state lokal langsung (backend tidak meng-cache list)
+      const saved = res.data?.data;
+      if (saved) setJadwal((prev) => [...prev, saved]);
+      else fetchJadwal();
+
+      setManual({ ...EMPTY_MANUAL });
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Gagal menambahkan jadwal"
+      );
+    } finally {
+      setSavingManual(false);
+    }
+  };
+
   const getFileIcon = (filename: string) => {
     const ext = filename.split(".").pop()?.toLowerCase();
     if (ext === "csv") return <BsFiletypeCsv size={40} className="text-green-600" />;
@@ -225,9 +302,39 @@ export default function InputJadwal() {
       {/* UPLOAD + CONTOH TEMPLATE — sebelahan (kiri upload, kanan contoh) */}
       <div className="flex flex-col lg:flex-row gap-6 items-stretch">
 
-      {/* UPLOAD CARD */}
+      {/* UPLOAD / MANUAL CARD */}
       <div className="bg-white rounded-2xl shadow p-4 sm:p-6 flex-1 min-w-0 flex flex-col">
 
+        {/* TAB SWITCHER */}
+        <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl w-full sm:w-fit">
+          <button
+            type="button"
+            onClick={() => setMode("upload")}
+            className={`flex items-center justify-center gap-2 flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition ${
+              mode === "upload"
+                ? "bg-white text-primary shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FiUploadCloud size={16} />
+            Upload Excel
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("manual")}
+            className={`flex items-center justify-center gap-2 flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition ${
+              mode === "manual"
+                ? "bg-white text-primary shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FiPlusCircle size={16} />
+            Input Manual
+          </button>
+        </div>
+
+      {mode === "upload" && (
+        <>
         <h2 className="font-semibold mb-2">
           Media Upload
         </h2>
@@ -334,6 +441,142 @@ export default function InputJadwal() {
         >
           {loading ? "Uploading..." : "Submit"}
         </button>
+        </>
+      )}
+
+      {/* ============ MODE: INPUT MANUAL ============ */}
+      {mode === "manual" && (
+        <>
+          <h2 className="font-semibold mb-2">Input Manual</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Tambahkan satu jadwal perkuliahan secara langsung tanpa file Excel.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* HARI */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Hari</label>
+              <div className="relative">
+                <select
+                  value={manual.hari}
+                  onChange={(e) => updateManual("hari", e.target.value)}
+                  className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                >
+                  {HARI_OPTIONS.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              </div>
+            </div>
+
+            {/* KODE MATKUL */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Kode Mata Kuliah</label>
+              <input
+                type="text"
+                value={manual.kode_mata_kuliah}
+                onChange={(e) => updateManual("kode_mata_kuliah", e.target.value)}
+                placeholder="Contoh: AZK1GAB3"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+
+            {/* NAMA MATKUL */}
+            <div className="flex flex-col gap-1 sm:col-span-2">
+              <label className="text-xs font-medium text-gray-600">Nama Mata Kuliah</label>
+              <input
+                type="text"
+                value={manual.mata_kuliah}
+                onChange={(e) => updateManual("mata_kuliah", e.target.value)}
+                placeholder="Contoh: Pemrograman Web"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+
+            {/* KELAS */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Kelas</label>
+              <input
+                type="text"
+                value={manual.kelas}
+                onChange={(e) => updateManual("kelas", e.target.value)}
+                placeholder="Contoh: TK-48-GAB1"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+
+            {/* KODE DOSEN */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Kode Dosen</label>
+              <input
+                type="text"
+                value={manual.dosen_utama}
+                onChange={(e) => updateManual("dosen_utama", e.target.value)}
+                placeholder="Contoh: MFC"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+
+            {/* RUANGAN */}
+            <div className="flex flex-col gap-1 sm:col-span-2">
+              <label className="text-xs font-medium text-gray-600">Ruangan</label>
+              <input
+                type="text"
+                value={manual.ruangan}
+                onChange={(e) => updateManual("ruangan", e.target.value)}
+                placeholder="Contoh: TULT 1212"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+
+            {/* JAM MULAI */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Jam Mulai</label>
+              <input
+                type="time"
+                value={manual.jam_mulai}
+                onChange={(e) => updateManual("jam_mulai", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+
+            {/* JAM SELESAI */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Jam Selesai</label>
+              <input
+                type="time"
+                value={manual.jam_selesai}
+                onChange={(e) => updateManual("jam_selesai", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+          </div>
+
+          {taId && (
+            <p className="text-xs text-gray-400 mt-3">
+              Jadwal akan ditambahkan ke tahun ajaran:{" "}
+              <span className="font-medium text-gray-500">
+                {selected?.label ?? "aktif"}
+              </span>
+            </p>
+          )}
+
+          <button
+            onClick={handleManualSubmit}
+            disabled={savingManual}
+            className={`mt-4 self-start inline-flex items-center gap-2 px-6 py-2 rounded-lg text-white transition ${
+              savingManual
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-primary hover:bg-primary-dark"
+            }`}
+          >
+            <FiPlusCircle size={16} />
+            {savingManual ? "Menyimpan..." : "Tambah Jadwal"}
+          </button>
+        </>
+      )}
       </div>
 
       {/* CONTOH TEMPLATE */}
